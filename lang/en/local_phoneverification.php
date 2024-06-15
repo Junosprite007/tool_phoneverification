@@ -17,7 +17,7 @@
 /**
  * Plugin strings are defined here.
  *
- * @package     local_phoneverification
+ * @package     tool_phoneverification
  * @category    string
  * @copyright   2024 Joshua Kirby <josh@funlearningcompany.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -26,3 +26,16 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Phone verification';
+$string['phone'] = 'Phone';
+$string['phonesettings'] = 'Phone settings';
+$string['showinnavigation'] = 'Show in navigation';
+$string['showinnavigation_desc'] = 'This setting determines whether the phone verification plugin will be shown in the navigation.';
+$string['manage'] = 'Manage phone verification';
+$string['provider'] = 'Provider';
+$string['provider_desc'] = 'Select the provider to use for sending SMS messages.';
+$string['infobipapikey'] = 'Infobip API key';
+$string['infobipapikey_desc'] = 'Enter the API key for Infobip.';
+$string['infobipapibaseurl'] = 'Infobip API base URL';
+$string['infobipapibaseurl_desc'] = 'Enter the API base URL for Infobip.';
+$string['testinputs'] = 'Test';
+$string['testinputs_desc'] = 'Click to test the settings.';

@@ -17,14 +17,14 @@
 /**
  * Plugin version and other meta-data are defined here.
  *
- * @package     local_phoneverification
+ * @package     tool_phoneverification
  * @copyright   2024 Joshua Kirby <josh@funlearningcompany.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_phoneverification';
+$plugin->component = 'tool_phoneverification';
 $plugin->release = '0.1.0';
 $plugin->version = 2024061300;
 $plugin->requires = 2024042201;

@@ -17,40 +17,50 @@
 /**
  * Plugin strings are defined here.
  *
- * @package     local_phoneverification
- * @category    string
+ * @package     tool_phoneverification
  * @copyright   2024 Joshua Kirby <josh@funlearningcompany.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once('../../config.php');
 global $DB, $OUTPUT, $PAGE;
 
+
 $PAGE->set_context(context_system::instance());
+$PAGE->set_url('/tool/phoneverification/form.php');
 $PAGE->set_title('PHP SMS');
 $PAGE->set_heading('PHP SMS');
 
 echo $OUTPUT->header();
 
-echo '<form method="post" action="send.php">';
-echo '<label for="number">Number</label>';
-echo '<input type="text" name="number" id="number" />';
-echo '<label for="message">Message</label>';
-echo '<textarea name="message" id="message"></textarea>';
-echo '<fieldset>';
-echo '<legend>Provider</legend>';
-echo '<label>';
-echo '<input type="radio" name="provider" value="infobip" checked /> Infobip';
-echo '</label>';
-echo '<br />';
-echo '<label>';
-echo '<input type="radio" name="provider" value="twilio" /> Twilio';
-echo '</label>';
-echo '<br />';
-echo '<label>';
-echo '<input type="radio" name="provider" value="awssns" /> AWS SNS';
-echo '</label>';
-echo '</fieldset>';
-echo '<button>Send</button>';
-echo '</form>';
+$provider = get_config('tool_phoneverification', 'provider');
+$infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
+$infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
 
+echo $provider . "<br>";
+echo $infobipapikey . "<br>";
+echo $infobipapibaseurl;
+
+?>
+<form method="post" action="send.php">
+    <label for="number">Number</label>
+    <input type="text" name="number" id="number" />
+    <label for="message">Message</label>
+    <textarea name="message" id="message"></textarea>
+    <fieldset>
+        <legend>Provider</legend>
+        <label>
+            <input type="radio" name="provider" value="infobip" checked /> Infobip
+        </label>
+        <br />
+        <label>
+            <input type="radio" name="provider" value="twilio" /> Twilio
+        </label>
+        <br />
+        <label>
+            <input type="radio" name="provider" value="awssns" /> AWS SNS
+        </label>
+    </fieldset>
+    <button>Send</button>
+</form>
+<?php
 echo $OUTPUT->footer();

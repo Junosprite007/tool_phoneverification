@@ -27,6 +27,14 @@ defined('MOODLE_INTERNAL') || die;
 
 
 if ($hassiteconfig) {
+    $ADMIN->add('server', new admin_externalpage(
+        'testoutgoingtextconf',
+        new lang_string('testoutgoingtextconf', 'tool_phoneverification'),
+        new moodle_url('/admin/testoutgoingtextconf.php'),
+        'moodle/site:config',
+        true
+    ));
+
     $ADMIN->add('server', new admin_category('phone', new lang_string('phone', 'tool_phoneverification')));
     $settingspage = new admin_settingpage('managetoolphoneverification', new lang_string('phoneproviderconfiguration', 'tool_phoneverification'));
 
@@ -105,7 +113,7 @@ if ($hassiteconfig) {
             PARAM_TEXT
         ));
 
-        // AWSSNS
+        // AWS SNS
         $link = html_writer::link('https://aws.amazon.com/sns/', get_string('here', 'tool_phoneverification'));
         $settingspage->add(new admin_setting_heading(
             'awssns',
@@ -136,6 +144,47 @@ if ($hassiteconfig) {
             PARAM_TEXT,
             69
         ));
+
+        // Test outgoing text configuration.
+        $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
+        $link = html_writer::link($url, get_string('testoutgoingtextconf', 'tool_phoneverification'));
+        $settingspage->add(new admin_setting_heading(
+            'testoutgoingtextc',
+            new lang_string('testoutgoingtextconf', 'tool_phoneverification'),
+            new lang_string('testoutgoingtextdetail', 'tool_phoneverification', $link)
+        ));
+
+
+        // $link = html_writer::link('https://aws.amazon.com/sns/', get_string('here', 'tool_phoneverification'));
+        // $settingspage->add(new admin_setting_heading(
+        //     'awssns',
+        //     new lang_string('awssns', 'tool_phoneverification'),
+        //     new lang_string('awssns_desc', 'tool_phoneverification', $link)
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnsaccesskey',
+        //     new lang_string('awssnsaccesskey', 'tool_phoneverification'),
+        //     new lang_string('awssnsaccesskey_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnssecretkey',
+        //     new lang_string('awssnssecretkey', 'tool_phoneverification'),
+        //     new lang_string('awssnssecretkey_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnsregion',
+        //     new lang_string('awssnsregion', 'tool_phoneverification'),
+        //     new lang_string('awssnsregion_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
     }
 
     $ADMIN->add('phone', $settingspage);

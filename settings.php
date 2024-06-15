@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die;
 
 
 if ($hassiteconfig) {
-    $ADMIN->add('toolplugins', new admin_category('tool_phoneverification_settings', new lang_string('pluginname', 'tool_phoneverification')));
+    $ADMIN->add('server', new admin_category('tool_phoneverification_settings', new lang_string('pluginname', 'tool_phoneverification')));
     $settingspage = new admin_settingpage('managetoolphoneverification', new lang_string('manage', 'tool_phoneverification'));
 
     if ($ADMIN->fulltree) {

@@ -44,24 +44,57 @@ class testoutgoingtextconf_form extends \moodleform {
         $mform = $this->_form;
 
         // Recipient.
-        $options = ['maxlength' => '100', 'size' => '25', 'autocomplete' => 'text'];
-        $mform->addElement('textarea', 'recipient', get_string('testoutgoingtextconf_totext', 'tool_phoneverification'), $options);
-        $mform->setType('recipient', PARAM_TEXT);
-        $mform->addRule('recipient', get_string('required'), 'required');
+        global $USER;
+        $userid = $USER->id;
+        $editprofileurl = new \moodle_url('/user/edit.php', array('id' => $userid));
+        // $editprofileurl = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
+        $link = \html_writer::link($editprofileurl, get_string('editmyprofile'));
+        $phone1 = $USER->phone1; // Get 'Phone' number from user profile
+        $phone2 = $USER->phone2; // Get 'Mobile phone' number from user profile
+        $nophone = false;
+        $options = [];
 
-        // From user.
-        $options = ['maxlength' => '100', 'size' => '25'];
-        $mform->addElement('text', 'from', get_string('testoutgoingtextconf_fromtext', 'tool_phoneverification'), $options);
-        $mform->setType('from', PARAM_TEXT);
-        $mform->addHelpButton('from', 'testoutgoingtextconf_fromtext', 'tool_phoneverification');
+        if ($phone1 && $phone2) {
+            $options = [
+                'phone1' => $phone1,
+                'phone2' => $phone2
+            ];
+        } elseif ($phone1) {
+            $options = [
+                'phone1' => $phone1
+            ];
+            $mform->setDefault('recipient', 'phone1');
+        } elseif ($phone2) {
+            $options = [
+                'phone2' => $phone2
+            ];
+            $mform->setDefault('recipient', 'phone2');
+        } else {
+            $nophone = true;
+        }
+
+        if ($nophone) {
+            // No phone numbers available.
+            $mform->setDefault('recipient', '');
+            $mform->addElement(
+                'static',
+                'nophonefound',
+                get_string('selectphonetoverify', 'tool_phoneverification'),
+                new \lang_string('nophonefound', 'tool_phoneverification', $link)
+            );
+            $mform->addRule('nophonefound', get_string('required'), 'required');
+        } else {
+            $mform->addElement('select', 'recipient', get_string('selectphonetoverify', 'tool_phoneverification'), $options);
+            $mform->addRule('recipient', get_string('required'), 'required');
+        }
 
         // Additional subject text.
         $options = ['size' => '25'];
-        $mform->addElement('textarea', 'additionalsubject', get_string('testoutgoingtextconf_subjectadditional', 'tool_phoneverification'), $options);
+        $mform->addElement('textarea', 'additionalsubject', get_string('subjectadditional', 'tool_phoneverification'), $options);
         $mform->setType('additionalsubject', PARAM_TEXT);
 
         $buttonarray = array();
-        $buttonarray[] = $mform->createElement('submit', 'send', get_string('testoutgoingtextconf_sendtest', 'tool_phoneverification'));
+        $buttonarray[] = $mform->createElement('submit', 'send', get_string('sendtest', 'tool_phoneverification'));
         $buttonarray[] = $mform->createElement('cancel');
 
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
@@ -83,7 +116,7 @@ class testoutgoingtextconf_form extends \moodleform {
             $userfrom = \core_user::get_user_by_username($data['from']);
 
             if (!$userfrom && !validate_text($data['from'])) {
-                $errors['from'] = get_string('testoutgoingtextconf_fromtext_invalid', 'tool_phoneverification');
+                $errors['from'] = get_string('fromtext_invalid', 'tool_phoneverification');
             }
         }
 

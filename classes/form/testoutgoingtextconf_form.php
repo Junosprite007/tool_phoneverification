@@ -63,19 +63,19 @@ class testoutgoingtextconf_form extends \moodleform {
             $options = [
                 'phone1' => $phone1
             ];
-            $mform->setDefault('recipient', 'phone1');
+            $mform->setDefault('phonenumber', 'phone1');
         } elseif ($phone2) {
             $options = [
                 'phone2' => $phone2
             ];
-            $mform->setDefault('recipient', 'phone2');
+            $mform->setDefault('phonenumber', 'phone2');
         } else {
             $nophone = true;
         }
 
         if ($nophone) {
             // No phone numbers available.
-            $mform->setDefault('recipient', '');
+            $mform->setDefault('phonenumber', '');
             $mform->addElement(
                 'static',
                 'nophonefound',
@@ -84,8 +84,9 @@ class testoutgoingtextconf_form extends \moodleform {
             );
             $mform->addRule('nophonefound', get_string('required'), 'required');
         } else {
-            $mform->addElement('select', 'recipient', get_string('selectphonetoverify', 'tool_phoneverification'), $options);
-            $mform->addRule('recipient', get_string('required'), 'required');
+            $mform->addElement('select', 'phonenumber', get_string('selectphonetoverify', 'tool_phoneverification'), $options);
+            $mform->setType('phonenumber', PARAM_TEXT);
+            $mform->addRule('phonenumber', get_string('required'), 'required');
         }
 
         // Additional subject text.
@@ -112,11 +113,11 @@ class testoutgoingtextconf_form extends \moodleform {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
 
-        if (isset($data['from']) && $data['from']) {
-            $userfrom = \core_user::get_user_by_username($data['from']);
+        if (isset($data['phonenumber']) && $data['phonenumber']) {
+            $userrecipient = \core_user::get_user_by_username($data['phonenumber']);
 
-            if (!$userfrom && !validate_text($data['from'])) {
-                $errors['from'] = get_string('fromtext_invalid', 'tool_phoneverification');
+            if (!$userrecipient && !\tool_phoneverification_validate_phone_number($data['phonenumber'])) {
+                $errors['phonenumber'] = get_string('recipientphone_invalid', 'tool_phoneverification');
             }
         }
 

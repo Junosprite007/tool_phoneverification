@@ -1,3 +1,3 @@
 # Phone verification
 
-## Twilio info
+I got nothin'.

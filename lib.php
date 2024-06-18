@@ -144,10 +144,10 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
                     from: $SITE->shortname
                 );
 
-                $request = new SmsAdvancedTextualRequest(messages: [$message]);
-                $response = $api->sendSmsMessage($request);
-                $responseobject->response = $response;
-                // $responseobject->response = 'Confirmed!';
+                // $request = new SmsAdvancedTextualRequest(messages: [$message]);
+                // $response = $api->sendSmsMessage($request);
+                // $responseobject->response = $response;
+                $responseobject->response = 'Confirmed!'; // This is just for testing OPT Code verifictaion.
             } catch (Exception $e) {
                 // Handle the exception
                 $response = 'Caught exception: ' . $e->getMessage() . "\n";

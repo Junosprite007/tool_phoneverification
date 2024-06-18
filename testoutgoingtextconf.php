@@ -21,8 +21,12 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core_reportbuilder\external\columns\sort\get;
+
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
+
+global $SITE;
 
 // This is an admin page.
 admin_externalpage_setup('testoutgoingtextconf');
@@ -49,82 +53,200 @@ if (!empty($CFG->notextever)) {
 
 $data = $form->get_data();
 if ($data) {
+    // echo "<br />";
+    // echo "<br />";
+    // echo '$data: ';
+    // var_dump($data);
+    // echo "<br />";
+    // echo "<br />";
     $textuser = new stdClass();
-    $textuser->text = $data->recipient;
+    $textuser->tonumber = $data->tonumber;
+
+    // $notes = new stdClass();
+    // $notes->shortname = $SITE->shortname;
+    // $notes->provider = $data->provider;
+
+    // $textuser->notes = $notes;
+
+    $textuser->notes = [
+        'shortname' => $SITE->shortname,
+        'provider' => $data->provider
+    ];
+    $textuser->message = $data->message ? $data->message : get_string('testoutgoingtextconf_message', 'tool_phoneverification', $textuser->notes);
+    // var_dump($textuser->message);
     $textuser->id = -99;
 
-    // Get the user who will send this text (From:).
-    $textuserfrom = $USER;
-    if ($data->from) {
-        if (!$userfrom = \core_user::get_user_by_text($data->from)) {
-            $userfrom = \core_user::get_user_by_username($data->from);
-        }
-        if (!$userfrom && validate_text($data->from)) {
-            $dummyuser = \core_user::get_user(\core_user::NOREPLY_USER);
-            $dummyuser->id = -1;
-            $dummyuser->text = $data->from;
-            $dummyuser->firstname = $data->from;
-            $textuserfrom = $dummyuser;
-        } else if ($userfrom) {
-            $textuserfrom = $userfrom;
-        }
-    }
+    // Add the cases for each provider.
+    $responseobject = tool_phoneverification_send_sms($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
 
-    // Get the date the text will be sent.
-    $timestamp = userdate(time(), get_string('strftimedatetimeaccurate', 'core_langconfig'));
 
-    // Build the text subject.
-    $subjectparams = new stdClass();
-    $subjectparams->site = format_string($SITE->fullname, true, ['context' => context_system::instance()]);
-    if (isset($data->additionalsubject)) {
-        $subjectparams->additional = format_string($data->additionalsubject);
-    }
-    $subjectparams->time = $timestamp;
 
-    $subject = get_string('testoutgoingtextconf_subject', 'tool_phoneverification', $subjectparams);
-    $messagetext = get_string('testoutgoingtextconf_message', 'tool_phoneverification', $timestamp);
+    // echo "<br />";
+    // echo "<br />";
+    // var_dump('$responseobject: ');
+    // echo "<pre>";
+    // var_dump($responseobject);
+    // echo "</pre>";
+    // echo "<br />";
+    // echo "<br />";
 
-    // Manage Moodle debugging options.
-    $debuglevel = $CFG->debug;
-    $debugdisplay = $CFG->debugdisplay;
-    $debugsmtp = $CFG->debugsmtp ?? null; // This might not be set as it's optional.
-    $CFG->debugdisplay = true;
-    $CFG->debugsmtp = true;
-    $CFG->debug = 15;
+    // Here's a successful response from Infobip:
 
-    // Send test text.
-    ob_start();
-    $success = text_to_user($textuser, $textuserfrom, $subject, $messagetext);
-    $smtplog = ob_get_contents();
-    ob_end_clean();
+    // string(11) "$response: "
+    // object(Infobip\Model\SmsResponse)#7736 (2) {
+    //   ["bulkId":protected]=>
+    //   NULL
+    //   ["messages":protected]=>
+    //   array(1) {
+    //     [0]=>
+    //     object(Infobip\Model\SmsResponseDetails)#7816 (3) {
+    //       ["messageId":protected]=>
+    //       string(22) "4186873281964335788176"
+    //       ["status":protected]=>
+    //       object(Infobip\Model\SmsStatus)#7826 (6) {
+    //         ["groupId":protected]=>
+    //         int(1)
+    //         ["groupName":protected]=>
+    //         string(7) "PENDING"
+    //         ["id":protected]=>
+    //         int(26)
+    //         ["name":protected]=>
+    //         string(16) "PENDING_ACCEPTED"
+    //         ["description":protected]=>
+    //         string(29) "Message sent to next instance"
+    //         ["action":protected]=>
+    //         NULL
+    //       }
+    //       ["to":protected]=>
+    //       string(12) "+16164465848"
+    //     }
+    //   }
+    // }
 
-    // Restore Moodle debugging options.
-    $CFG->debug = $debuglevel;
-    $CFG->debugdisplay = $debugdisplay;
+    // string(24) "$response->getBulkId(): "
+    // NULL
 
-    // Restore the debugsmtp config, if it was set originally.
-    unset($CFG->debugsmtp);
-    if (!is_null($debugsmtp)) {
-        $CFG->debugsmtp = $debugsmtp;
-    }
 
-    if ($success) {
-        $msgparams = new stdClass();
-        $msgparams->fromtext = $textuserfrom->text;
-        $msgparams->totext = $textuser->text;
-        $msg = get_string('testoutgoingtextconf_sentmail', 'tool_phoneverification', $msgparams);
-        $notificationtype = 'notifysuccess';
-    } else {
+    // string(31) "$response->getDiscriminator(): "
+    // string(0) ""
+
+
+    // string(26) "$response->getMessages(): "
+    // array(1) {
+    //   [0]=>
+    //   object(Infobip\Model\SmsResponseDetails)#7816 (3) {
+    //     ["messageId":protected]=>
+    //     string(22) "4186929606364335437619"
+    //     ["status":protected]=>
+    //     object(Infobip\Model\SmsStatus)#7826 (6) {
+    //       ["groupId":protected]=>
+    //       int(1)
+    //       ["groupName":protected]=>
+    //       string(7) "PENDING"
+    //       ["id":protected]=>
+    //       int(26)
+    //       ["name":protected]=>
+    //       string(16) "PENDING_ACCEPTED"
+    //       ["description":protected]=>
+    //       string(29) "Message sent to next instance"
+    //       ["action":protected]=>
+    //       NULL
+    //     }
+    //     ["to":protected]=>
+    //     string(12) "+16164465848"
+    //   }
+    // }
+
+
+    // string(27) "$response->getModelName(): "
+    // string(11) "SmsResponse"
+
+
+
+
+    // string(11) "$response: "
+    // object(Infobip\Model\SmsResponse)#7736 (2) {
+    //   ["bulkId":protected]=>
+    //   NULL
+    //   ["messages":protected]=>
+    //   array(1) {
+    //     [0]=>
+    //     object(Infobip\Model\SmsResponseDetails)#7816 (3) {
+    //       ["messageId":protected]=>
+    //       string(22) "4186929606364335437619"
+    //       ["status":protected]=>
+    //       object(Infobip\Model\SmsStatus)#7826 (6) {
+    //         ["groupId":protected]=>
+    //         int(1)
+    //         ["groupName":protected]=>
+    //         string(7) "PENDING"
+    //         ["id":protected]=>
+    //         int(26)
+    //         ["name":protected]=>
+    //         string(16) "PENDING_ACCEPTED"
+    //         ["description":protected]=>
+    //         string(29) "Message sent to next instance"
+    //         ["action":protected]=>
+    //         NULL
+    //       }
+    //       ["to":protected]=>
+    //       string(12) "+16164465848"
+    //     }
+    //   }
+    // }
+
+
+
+
+
+
+
+
+    // // Get the user who will send this text (From:).
+    // $textuserfrom = $USER;
+    // if ($data->from) {
+    //     if (!$userfrom = \core_user::get_user_by_text($data->from)) {
+    //         $userfrom = \core_user::get_user_by_username($data->from);
+    //     }
+    //     if (!$userfrom && tool_phoneverification_validate_phone_number($data->from)) {
+    //         $dummyuser = \core_user::get_user(\core_user::NOREPLY_USER);
+    //         $dummyuser->id = -1;
+    //         $dummyuser->text = $data->from;
+    //         $dummyuser->firstname = $data->from;
+    //         $textuserfrom = $dummyuser;
+    //     } else if ($userfrom) {
+    //         $textuserfrom = $userfrom;
+    //     }
+    // }
+
+    // // Get the date the text will be sent.
+    // $timestamp = userdate(time(), get_string('strftimedatetimeaccurate', 'core_langconfig'));
+
+    // // Build the text subject.
+    // $subjectparams = new stdClass();
+    // $subjectparams->site = format_string($SITE->fullname, true, ['context' => context_system::instance()]);
+    // if (isset($data->additionalsubject)) {
+    //     $subjectparams->additional = format_string($data->additionalsubject);
+    // }
+    // $subjectparams->time = $timestamp;
+
+    // $subject = get_string('testoutgoingtextconf_subject', 'tool_phoneverification', $subjectparams);
+    // $messagetext = get_string('testoutgoingtextconf_message', 'tool_phoneverification', $timestamp);
+
+
+    // We're eventually going to need to hand Moodle debugging options. Check out 'testoutgoingmailconf.php' for an example.
+
+    if (isset($responseobject->error)) {
         $notificationtype = 'notifyproblem';
-        // No communication between Moodle and the SMTP server - no error output.
-        if (trim($smtplog) == false) {
-            $msg = get_string('testoutgoingtextconf_errorcommunications', 'tool_phoneverification');
-        } else {
-            $msg = $smtplog;
-        }
+        $msg = get_string('senttextfailure', 'tool_phoneverification', $responseobject->error);
+    } else {
+        $msgparams = new stdClass();
+        $msgparams->tonumber = $textuser->tonumber;
+        $msg = get_string('senttextsuccess', 'tool_phoneverification', $msgparams);
+        $notificationtype = 'notifysuccess';
     }
 
-    // Show result.
+    // // Show result.
     echo $OUTPUT->notification($msg, $notificationtype);
 }
 

@@ -27,7 +27,8 @@ namespace tool_phoneverification\form;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->libdir . '/formslib.php');
+// require_once($CFG->libdir . '/formslib.php');
+require_once(__DIR__ . '/../../lib.php');
 
 /**
  * Test mail form
@@ -47,52 +48,90 @@ class testoutgoingtextconf_form extends \moodleform {
         global $USER;
         $userid = $USER->id;
         $editprofileurl = new \moodle_url('/user/edit.php', array('id' => $userid));
-        // $editprofileurl = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
-        $link = \html_writer::link($editprofileurl, get_string('editmyprofile'));
-        $phone1 = $USER->phone1; // Get 'Phone' number from user profile
-        $phone2 = $USER->phone2; // Get 'Mobile phone' number from user profile
-        $nophone = false;
-        $options = [];
+        $editprofilelink = \html_writer::link($editprofileurl, get_string('editmyprofile'));
+        $providerconfigurl = new \moodle_url('/admin/settings.php?section=managetoolphoneverification');
+        $providerconfiglink = \html_writer::link($providerconfigurl, get_string('phoneproviderconfiguration', 'tool_phoneverification'));
 
-        if ($phone1 && $phone2) {
-            $options = [
-                'phone1' => $phone1,
-                'phone2' => $phone2
-            ];
-        } elseif ($phone1) {
-            $options = [
-                'phone1' => $phone1
-            ];
-            $mform->setDefault('phonenumber', 'phone1');
-        } elseif ($phone2) {
-            $options = [
-                'phone2' => $phone2
-            ];
-            $mform->setDefault('phonenumber', 'phone2');
+        // Phone number.
+        $phone1 = tool_phoneverification_validate_phone_number($USER->phone1);
+        $phone2 = tool_phoneverification_validate_phone_number($USER->phone2);
+        $phone1formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone1);
+        $phone2formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone2);;
+        if ($phone1formatted === $phone2formatted) {
+            $phoneoptions = [$phone1 => $phone1formatted];
         } else {
-            $nophone = true;
+            $phoneoptions = [$phone1 => $phone1formatted, $phone2 => $phone2formatted];
+        }
+        // $phoneoptions = [$phone1 => $phone1formatted, $phone2 => $phone2formatted];
+        $phoneselected = '';
+
+        // Set the selected phone number for setDefault later.
+        if (($phoneoptions[$phone1] && $phoneoptions[$phone2]) || ($phoneoptions[$phone1])) {
+            $phoneselected = $phoneoptions[$phone1];
+        } elseif ($phoneoptions[$phone2]) {
+            $phoneselected = $phoneoptions[$phone2];
         }
 
-        if ($nophone) {
+        // Provider dropdown.
+        $providerstoshow = tool_phoneverification_providers_to_show(get_config('tool_phoneverification'));
+        // echo '<br>';
+        // echo '<br>';
+        // echo '<br>';
+        // var_dump("\$providerstoshow: ");
+        // var_dump($providerstoshow);
+
+        if (!$providerstoshow) {
+            // No providers configured.
+            $mform->addElement(
+                'static',
+                'noproviderfound',
+                get_string('selectphonetoverify', 'tool_phoneverification'),
+                new \lang_string('noproviderfound', 'tool_phoneverification', $providerconfiglink)
+            );
+            $mform->addRule('noproviderfound', get_string('required'), 'required');
+        } else {
+            $mform->addElement('select', 'provider', get_string('selectprovider', 'tool_phoneverification'), $providerstoshow);
+            $mform->setType('provider', PARAM_TEXT);
+            $mform->addRule('provider', get_string('required'), 'required');
+        }
+
+        if (!$phoneselected) {
             // No phone numbers available.
-            $mform->setDefault('phonenumber', '');
             $mform->addElement(
                 'static',
                 'nophonefound',
                 get_string('selectphonetoverify', 'tool_phoneverification'),
-                new \lang_string('nophonefound', 'tool_phoneverification', $link)
+                new \lang_string('nophonefound', 'tool_phoneverification', $editprofilelink)
             );
             $mform->addRule('nophonefound', get_string('required'), 'required');
         } else {
-            $mform->addElement('select', 'phonenumber', get_string('selectphonetoverify', 'tool_phoneverification'), $options);
-            $mform->setType('phonenumber', PARAM_TEXT);
-            $mform->addRule('phonenumber', get_string('required'), 'required');
+            // if ($phone1 === $phone2) {
+            //     array_pop($phoneoptions);
+
+            //     echo '<br>';
+            //     echo '<br>';
+            //     var_dump("\$phoneoptions: ");
+            //     var_dump($phoneoptions);
+            // }
+            $mform->addElement('select', 'tonumber', get_string('selectphonetoverify', 'tool_phoneverification'), $phoneoptions);
+            $mform->setType('tonumber', PARAM_TEXT);
+            $mform->setDefault('tonumber', $phoneselected);
+            $mform->addRule('tonumber', get_string('required'), 'required');
         }
 
+        // echo '<br>';
+        // var_dump("\$phoneselected: ");
+        // var_dump($phoneselected);
+        // echo '<br>';
+        // echo '<br>';
+        // var_dump("\$phoneoptions: ");
+        // var_dump($phoneoptions);
+
+
         // Additional subject text.
-        $options = ['size' => '25'];
-        $mform->addElement('textarea', 'additionalsubject', get_string('subjectadditional', 'tool_phoneverification'), $options);
-        $mform->setType('additionalsubject', PARAM_TEXT);
+        $textoptions = ['maxlength' => '160'];
+        $mform->addElement('textarea', 'message', get_string('subjectadditional', 'tool_phoneverification'), $textoptions);
+        $mform->setType('message', PARAM_TEXT);
 
         $buttonarray = array();
         $buttonarray[] = $mform->createElement('submit', 'send', get_string('sendtest', 'tool_phoneverification'));
@@ -100,6 +139,12 @@ class testoutgoingtextconf_form extends \moodleform {
 
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
+        // echo '<br>';
+        // echo '<br>';
+        // var_dump("\$buttonarray: ");
+        // var_dump($buttonarray);
+        // echo '<br>';
+        // echo '<br>';
     }
 
     /**
@@ -111,14 +156,23 @@ class testoutgoingtextconf_form extends \moodleform {
      * @throws \dml_exception|\coding_exception
      */
     public function validation($data, $files): array {
+        // global $USER;
+        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
         $errors = parent::validation($data, $files);
+        // echo '<br>';
+        // echo '<br>';
+        // $data['tonumber'] = $phoneoptions[$data['tonumber']];
+        // var_dump("Form validation \$data: ");
+        // var_dump($data['tonumber']);
 
-        if (isset($data['phonenumber']) && $data['phonenumber']) {
-            $userrecipient = \core_user::get_user_by_username($data['phonenumber']);
+        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
 
-            if (!$userrecipient && !\tool_phoneverification_validate_phone_number($data['phonenumber'])) {
-                $errors['phonenumber'] = get_string('recipientphone_invalid', 'tool_phoneverification');
-            }
+        if (isset($data['tonumber']) && $data['tonumber']) {
+            // $userrecipient = \core_user::get_user_by_username($data['tonumber']);
+
+            // if (!$userrecipient && !tool_phoneverification_validate_phone_number($data['tonumber'])) {
+            //     $errors['tonumber'] = get_string('recipientphone_invalid', 'tool_phoneverification');
+            // }
         }
 
         return $errors;

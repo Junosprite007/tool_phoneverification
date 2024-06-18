@@ -82,68 +82,68 @@ if ($hassiteconfig) {
             PARAM_URL
         ));
 
-        // Twilio
-        $link = html_writer::link('https://www.twilio.com/', get_string('here', 'tool_phoneverification'));
-        $settingspage->add(new admin_setting_heading(
-            'twilio',
-            new lang_string('twilio', 'tool_phoneverification'),
-            new lang_string('twilio_desc', 'tool_phoneverification', $link)
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/twilioaccountsid',
-            new lang_string('twilioaccountsid', 'tool_phoneverification'),
-            new lang_string('twilioaccountsid_desc', 'tool_phoneverification'),
-            '',
-            PARAM_TEXT,
-            // '/^[a-f0-9]{32}-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/',
-            69
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/twilioauthtoken',
-            new lang_string('twilioauthtoken', 'tool_phoneverification'),
-            new lang_string('twilioauthtoken_desc', 'tool_phoneverification'),
-            '',
-            PARAM_URL
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/twilionumber',
-            new lang_string('twilionumber', 'tool_phoneverification'),
-            new lang_string('twilionumber_desc', 'tool_phoneverification'),
-            '',
-            PARAM_TEXT
-        ));
+        // // Twilio
+        // $link = html_writer::link('https://www.twilio.com/', get_string('here', 'tool_phoneverification'));
+        // $settingspage->add(new admin_setting_heading(
+        //     'twilio',
+        //     new lang_string('twilio', 'tool_phoneverification'),
+        //     new lang_string('twilio_desc', 'tool_phoneverification', $link)
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/twilioaccountsid',
+        //     new lang_string('twilioaccountsid', 'tool_phoneverification'),
+        //     new lang_string('twilioaccountsid_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT
+        //     // '/^[a-f0-9]{32}-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/',
+        //     // 69
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/twilioauthtoken',
+        //     new lang_string('twilioauthtoken', 'tool_phoneverification'),
+        //     new lang_string('twilioauthtoken_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_URL
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/twilionumber',
+        //     new lang_string('twilionumber', 'tool_phoneverification'),
+        //     new lang_string('twilionumber_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT
+        // ));
 
-        // AWS SNS
-        $link = html_writer::link('https://aws.amazon.com/sns/', get_string('here', 'tool_phoneverification'));
-        $settingspage->add(new admin_setting_heading(
-            'awssns',
-            new lang_string('awssns', 'tool_phoneverification'),
-            new lang_string('awssns_desc', 'tool_phoneverification', $link)
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/awssnsaccesskey',
-            new lang_string('awssnsaccesskey', 'tool_phoneverification'),
-            new lang_string('awssnsaccesskey_desc', 'tool_phoneverification'),
-            '',
-            PARAM_TEXT,
-            69
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/awssnssecretkey',
-            new lang_string('awssnssecretkey', 'tool_phoneverification'),
-            new lang_string('awssnssecretkey_desc', 'tool_phoneverification'),
-            '',
-            PARAM_TEXT,
-            69
-        ));
-        $settingspage->add(new admin_setting_configtext(
-            'tool_phoneverification/awssnsregion',
-            new lang_string('awssnsregion', 'tool_phoneverification'),
-            new lang_string('awssnsregion_desc', 'tool_phoneverification'),
-            '',
-            PARAM_TEXT,
-            69
-        ));
+        // // AWS SNS
+        // $link = html_writer::link('https://aws.amazon.com/sns/', get_string('here', 'tool_phoneverification'));
+        // $settingspage->add(new admin_setting_heading(
+        //     'awssns',
+        //     new lang_string('awssns', 'tool_phoneverification'),
+        //     new lang_string('awssns_desc', 'tool_phoneverification', $link)
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnsaccesskey',
+        //     new lang_string('awssnsaccesskey', 'tool_phoneverification'),
+        //     new lang_string('awssnsaccesskey_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnssecretkey',
+        //     new lang_string('awssnssecretkey', 'tool_phoneverification'),
+        //     new lang_string('awssnssecretkey_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
+        // $settingspage->add(new admin_setting_configtext(
+        //     'tool_phoneverification/awssnsregion',
+        //     new lang_string('awssnsregion', 'tool_phoneverification'),
+        //     new lang_string('awssnsregion_desc', 'tool_phoneverification'),
+        //     '',
+        //     PARAM_TEXT,
+        //     69
+        // ));
 
         // Test outgoing text configuration.
         $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');

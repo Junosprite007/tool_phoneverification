@@ -77,130 +77,8 @@ if ($data) {
     $textuser->id = -99;
 
     // Add the cases for each provider.
-    $responseobject = tool_phoneverification_send_sms($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
-
-
-
-    // echo "<br />";
-    // echo "<br />";
-    // var_dump('$responseobject: ');
-    // echo "<pre>";
-    // var_dump($responseobject);
-    // echo "</pre>";
-    // echo "<br />";
-    // echo "<br />";
-
-    // Here's a successful response from Infobip:
-
-    // string(11) "$response: "
-    // object(Infobip\Model\SmsResponse)#7736 (2) {
-    //   ["bulkId":protected]=>
-    //   NULL
-    //   ["messages":protected]=>
-    //   array(1) {
-    //     [0]=>
-    //     object(Infobip\Model\SmsResponseDetails)#7816 (3) {
-    //       ["messageId":protected]=>
-    //       string(22) "4186873281964335788176"
-    //       ["status":protected]=>
-    //       object(Infobip\Model\SmsStatus)#7826 (6) {
-    //         ["groupId":protected]=>
-    //         int(1)
-    //         ["groupName":protected]=>
-    //         string(7) "PENDING"
-    //         ["id":protected]=>
-    //         int(26)
-    //         ["name":protected]=>
-    //         string(16) "PENDING_ACCEPTED"
-    //         ["description":protected]=>
-    //         string(29) "Message sent to next instance"
-    //         ["action":protected]=>
-    //         NULL
-    //       }
-    //       ["to":protected]=>
-    //       string(12) "+16164465848"
-    //     }
-    //   }
-    // }
-
-    // string(24) "$response->getBulkId(): "
-    // NULL
-
-
-    // string(31) "$response->getDiscriminator(): "
-    // string(0) ""
-
-
-    // string(26) "$response->getMessages(): "
-    // array(1) {
-    //   [0]=>
-    //   object(Infobip\Model\SmsResponseDetails)#7816 (3) {
-    //     ["messageId":protected]=>
-    //     string(22) "4186929606364335437619"
-    //     ["status":protected]=>
-    //     object(Infobip\Model\SmsStatus)#7826 (6) {
-    //       ["groupId":protected]=>
-    //       int(1)
-    //       ["groupName":protected]=>
-    //       string(7) "PENDING"
-    //       ["id":protected]=>
-    //       int(26)
-    //       ["name":protected]=>
-    //       string(16) "PENDING_ACCEPTED"
-    //       ["description":protected]=>
-    //       string(29) "Message sent to next instance"
-    //       ["action":protected]=>
-    //       NULL
-    //     }
-    //     ["to":protected]=>
-    //     string(12) "+16164465848"
-    //   }
-    // }
-
-
-    // string(27) "$response->getModelName(): "
-    // string(11) "SmsResponse"
-
-
-
-
-    // string(11) "$response: "
-    // object(Infobip\Model\SmsResponse)#7736 (2) {
-    //   ["bulkId":protected]=>
-    //   NULL
-    //   ["messages":protected]=>
-    //   array(1) {
-    //     [0]=>
-    //     object(Infobip\Model\SmsResponseDetails)#7816 (3) {
-    //       ["messageId":protected]=>
-    //       string(22) "4186929606364335437619"
-    //       ["status":protected]=>
-    //       object(Infobip\Model\SmsStatus)#7826 (6) {
-    //         ["groupId":protected]=>
-    //         int(1)
-    //         ["groupName":protected]=>
-    //         string(7) "PENDING"
-    //         ["id":protected]=>
-    //         int(26)
-    //         ["name":protected]=>
-    //         string(16) "PENDING_ACCEPTED"
-    //         ["description":protected]=>
-    //         string(29) "Message sent to next instance"
-    //         ["action":protected]=>
-    //         NULL
-    //       }
-    //       ["to":protected]=>
-    //       string(12) "+16164465848"
-    //     }
-    //   }
-    // }
-
-
-
-
-
-
-
+    // $responseobject = tool_phoneverification_send_sms($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
+    $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
 
     // // Get the user who will send this text (From:).
     // $textuserfrom = $USER;
@@ -236,14 +114,14 @@ if ($data) {
 
     // We're eventually going to need to hand Moodle debugging options. Check out 'testoutgoingmailconf.php' for an example.
 
-    if (isset($responseobject->error)) {
-        $notificationtype = 'notifyproblem';
-        $msg = get_string('senttextfailure', 'tool_phoneverification', $responseobject->error);
-    } else {
+    if ($responseobject->success) {
         $msgparams = new stdClass();
         $msgparams->tonumber = $textuser->tonumber;
         $msg = get_string('senttextsuccess', 'tool_phoneverification', $msgparams);
         $notificationtype = 'notifysuccess';
+    } else {
+        $notificationtype = 'notifyproblem';
+        $msg = get_string('senttextfailure', 'tool_phoneverification', $responseobject->errormessage);
     }
 
     // // Show result.

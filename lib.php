@@ -33,9 +33,10 @@ use Infobip\Model\SmsTextualMessage;
 use Infobip\Model\SmsAdvancedTextualRequest;
 use Twilio\Rest\Client;
 
-require __DIR__ . "/vendor/autoload.php";
+require_once(__DIR__ . "/vendor/autoload.php");
 require_once($CFG->libdir . '/filelib.php');
 // require_once($CFG->libdir . '/http.php');
+// require_once('HTTP/Request2.php');
 
 /**
  * Validates a cell phone number to make sure it makes sense.
@@ -84,9 +85,8 @@ function tool_phoneverification_validate_phone_number($phonenumber, $country = '
 /**
  * Validates a cell phone number to make sure it makes sense.
  *
- * @param string $phonenumber The cell phone number to validate.
- * @param string $country The country code to use.
- * @return boolean
+ * @param object $allphoneconfigs An object containing all the phone configuration settings for every provider.
+ * @return array
  */
 function tool_phoneverification_providers_to_show($allphoneconfigs) {
     // foreach ($allphoneconfigs as $key => $value) {
@@ -124,55 +124,137 @@ function tool_phoneverification_providers_to_show($allphoneconfigs) {
     return $providers;
 }
 
-function tool_phoneverification_send_sms($provider, $tonumber, $message) {
+// /**
+//  * Sends an SMS message to a phone number.
+//  *
+//  * @param string $provider The provider to use for sending the SMS message.
+//  * @param string $tonumber The phone number to send the SMS message to.
+//  * @param string $message The message to send in the SMS message.
+//  * @return object
+//  */
+// function tool_phoneverification_send_sms($provider, $tonumber, $message) {
+//     global $CFG;
+//     global $SITE;
+
+//     $responseobject = new stdClass();
+
+//     switch ($provider) {
+//         case 'infobip':
+//             try {
+//                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
+//                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
+//                 $configuration = new Configuration(host: $infobipapibaseurl, apiKey: $infobipapikey);
+//                 $api = new SmsApi(config: $configuration);
+//                 $destination = new SmsDestination(to: $tonumber);
+//                 $msg = new SmsTextualMessage(
+//                     destinations: [$destination],
+//                     text: $message,
+//                     from: $SITE->shortname
+//                 );
+
+//                 // $request = new SmsAdvancedTextualRequest(messages: [$msg]);
+//                 // $response = $api->sendSmsMessage($request);
+//                 // $responseobject->response = $response;
+//                 $responseobject->response = 'Confirmed!'; // This is just for testing OPT Code verifictaion.
+//             } catch (Exception $e) {
+//                 // Handle the exception
+//                 $response = 'Caught exception: ' . $e->getMessage() . "\n";
+//                 $responseobject->response = $response;
+//                 $responseobject->error = $e->getMessage();
+//             }
+
+//             // var_dump('$response->getRequestError(): ');
+//             // echo "<pre>";
+//             // var_dump($response->getRequestError());
+//             // echo "</pre>";
+//             // echo "<br />";
+//             // echo "<br />";
+//             // Straight from InfoBip's website.
+//             // try {
+//             //     // if ($response->getStatus() == 200) {
+//             //     //     echo $response->getBody();
+//             //     // } else {
+//             //     //     echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
+//             //     //         $response->getReasonPhrase();
+//             //     // }
+//             // } catch ($message $e) {
+//             //     echo 'Error: ' . $e->getMessage();
+//             // }
+
+//             break;
+//         case 'twilio':
+//             // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
+//             // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
+//             // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
+
+//             break;
+//         case 'awssns':
+//             // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
+//             // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
+//             // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
+
+//             break;
+//         default:
+//             break;
+//     }
+//     // return '$response';
+//     return $responseobject;
+// }
+
+/**
+ * Sends an encrypted SMS message to a phone number.
+ *
+ * @param string $provider The provider to use for sending the SMS message.
+ * @param string $tonumber The phone number to send the SMS message to.
+ * @param string $message The message to send in the SMS message.
+ * @return object
+ */
+function tool_phoneverification_send_secure_otp($provider, $tonumber, $message) {
     global $CFG;
     global $SITE;
 
     $responseobject = new stdClass();
+    $otp = rand(100000, 999999);
 
     switch ($provider) {
         case 'infobip':
             try {
                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
-                $configuration = new Configuration(host: $infobipapibaseurl, apiKey: $infobipapikey);
-                $api = new SmsApi(config: $configuration);
-                $destination = new SmsDestination(to: $tonumber);
-                $message = new SmsTextualMessage(
-                    destinations: [$destination],
-                    text: $message,
-                    from: $SITE->shortname
-                );
+                $curl = new curl();
 
-                // $request = new SmsAdvancedTextualRequest(messages: [$message]);
-                // $response = $api->sendSmsMessage($request);
-                // $responseobject->response = $response;
-                $responseobject->response = 'Confirmed!'; // This is just for testing OPT Code verifictaion.
+                // Set headers
+                $headers = [
+                    'Authorization: App ' . $infobipapikey,
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ];
+
+                $curl->setHeader($headers);
+                $postdata = '{"messages":[{"destinations":[{"to":"' . $tonumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
+
+                // Make the request
+                $responseobject->response = $curl->post('https://' . $infobipapibaseurl . '/sms/2/text/advanced', $postdata);
+
+                // Get the HTTP response code
+                $info = $curl->get_info();
+                $responseobject->errormessage = '';
+                $responseobject->errorobject = new stdClass();
+
+                if ($info['http_code'] >= 200 && $info['http_code'] < 300) {
+                    // The request was successful
+                    $responseobject->success = true;
+                } else {
+                    // The request failed
+                    $responseobject->errorobject->httpcode = $info['http_code'];
+                    $responseobject->errorobject->curlcode = $curl->get_errno();
+                    $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
+                    $responseobject->success = false;
+                }
             } catch (Exception $e) {
                 // Handle the exception
-                $response = 'Caught exception: ' . $e->getMessage() . "\n";
-                $responseobject->response = $response;
-                $responseobject->error = $e->getMessage();
+                $responseobject->errormessage = $e->getMessage();
             }
-
-            // var_dump('$response->getRequestError(): ');
-            // echo "<pre>";
-            // var_dump($response->getRequestError());
-            // echo "</pre>";
-            // echo "<br />";
-            // echo "<br />";
-            // Straight from InfoBip's website.
-            // try {
-            //     // if ($response->getStatus() == 200) {
-            //     //     echo $response->getBody();
-            //     // } else {
-            //     //     echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
-            //     //         $response->getReasonPhrase();
-            //     // }
-            // } catch ($message $e) {
-            //     echo 'Error: ' . $e->getMessage();
-            // }
-
             break;
         case 'twilio':
             // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
@@ -192,21 +274,3 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
     // return '$response';
     return $responseobject;
 }
-
-// /**
-//  * Validates an email to make sure it makes sense.
-//  *
-//  * @param string $address The email address to validate.
-//  * @return boolean
-//  */
-// function validate_text($address) {
-//     global $CFG;
-
-//     if ($address === null || $address === false || $address === '') {
-//         return false;
-//     }
-
-//     require_once("{$CFG->libdir}/phpmailer/moodle_phpmailer.php");
-
-//     return moodle_phpmailer::validateAddress($address ?? '') && !preg_match('/[<>]/', $address);
-// }

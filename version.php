@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'tool_phoneverification';
 $plugin->release = '0.1.0';
-$plugin->version = 2024061300;
+$plugin->version = 2024061800;
 $plugin->requires = 2024042201;
 $plugin->maturity = MATURITY_STABLE;

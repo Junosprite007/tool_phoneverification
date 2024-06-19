@@ -72,13 +72,15 @@ if ($data) {
         'shortname' => $SITE->shortname,
         'provider' => $data->provider
     ];
-    $textuser->message = $data->message ? $data->message : get_string('testoutgoingtextconf_message', 'tool_phoneverification', $textuser->notes);
-    // var_dump($textuser->message);
+
+    // No longer using the message field, since we're dealing with OTPs now.
+    // $textuser->message = $data->message ? $data->message : get_string('testoutgoingtextconf_message', 'tool_phoneverification', $textuser->notes);
+
     $textuser->id = -99;
 
     // Add the cases for each provider.
     // $responseobject = tool_phoneverification_send_sms($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
-    $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber, $textuser->message);
+    $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber);
 
     // // Get the user who will send this text (From:).
     // $textuserfrom = $USER;

@@ -124,6 +124,81 @@ function tool_phoneverification_providers_to_show($allphoneconfigs) {
     return $providers;
 }
 
+/**
+ * Sends an SMS message to a phone number.
+ *
+ * @param string $provider The provider to use for sending the SMS message.
+ * @param string $tonumber The phone number to send the SMS message to.
+ * @param string $message The message to send in the SMS message.
+ * @return object
+ */
+function tool_phoneverification_send_sms($provider, $tonumber, $message) {
+    global $CFG;
+    global $SITE;
+
+    $responseobject = new stdClass();
+    $otp = rand(100000, 999999);
+
+    switch ($provider) {
+        case 'infobip':
+            try {
+                $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
+                $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
+                $curl = new curl();
+
+                // Set headers
+                $headers = [
+                    'Authorization: App ' . $infobipapikey,
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ];
+
+                $curl->setHeader($headers);
+                $postdata = '{"messages":[{"destinations":[{"to":"' . $tonumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
+
+                // Make the request
+                $responseobject->response = $curl->post('https://' . $infobipapibaseurl . '/sms/2/text/advanced', $postdata);
+
+                // Get the HTTP response code
+                $info = $curl->get_info();
+                $responseobject->errormessage = '';
+                $responseobject->errorobject = new stdClass();
+
+                if ($info['http_code'] >= 200 && $info['http_code'] < 300) {
+                    // The request was successful
+                    $responseobject->success = true;
+                } else {
+                    // The request failed
+                    $responseobject->errorobject->httpcode = $info['http_code'];
+                    $responseobject->errorobject->curlcode = $curl->get_errno();
+                    $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
+                    $responseobject->success = false;
+                }
+            } catch (Exception $e) {
+                // Handle the exception
+                $responseobject->errormessage = $e->getMessage();
+            }
+            break;
+        case 'twilio':
+            // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
+            // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
+            // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
+
+            break;
+        case 'awssns':
+            // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
+            // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
+            // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
+
+            break;
+        default:
+            break;
+    }
+    // return '$response';
+    return $responseobject;
+}
+
+// // This is the old version of the function.
 // /**
 //  * Sends an SMS message to a phone number.
 //  *
@@ -202,19 +277,38 @@ function tool_phoneverification_providers_to_show($allphoneconfigs) {
 // }
 
 /**
- * Sends an encrypted SMS message to a phone number.
+ * Sends an SMS message to a phone number via POST and HTTPS.
  *
  * @param string $provider The provider to use for sending the SMS message.
  * @param string $tonumber The phone number to send the SMS message to.
  * @param string $message The message to send in the SMS message.
  * @return object
  */
-function tool_phoneverification_send_secure_otp($provider, $tonumber, $message) {
-    global $CFG;
-    global $SITE;
+function tool_phoneverification_send_secure_otp($provider, $tonumber) {
+    global $CFG, $SITE, $DB, $USER, $SESSION;
 
     $responseobject = new stdClass();
-    $otp = rand(100000, 999999);
+    $otp = mt_rand(100000, 999999);
+    $message = get_string('phoneverificationcodeforflip', 'tool_phoneverification', $otp);
+
+    // Store OTP in session
+    $SESSION->otp = $otp;
+
+    // Store hashed OTP in database with expiration time
+    $record = new stdClass();
+    $record->userid = $USER->id;
+    $record->otp = password_hash($otp, PASSWORD_DEFAULT);  // Hash the OTP
+    $record->timecreated = time();
+    $record->expires = time() + 120;  // OTP expires after 5 minutes
+
+    $DB->insert_record('tool_phoneverification_otp', $record);
+
+    echo '<br>';
+    echo '<br>';
+    echo '<br>';
+    echo $otp;
+    echo '<br>';
+    echo '<br>';
 
     switch ($provider) {
         case 'infobip':
@@ -233,24 +327,30 @@ function tool_phoneverification_send_secure_otp($provider, $tonumber, $message) 
                 $curl->setHeader($headers);
                 $postdata = '{"messages":[{"destinations":[{"to":"' . $tonumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
 
-                // Make the request
-                $responseobject->response = $curl->post('https://' . $infobipapibaseurl . '/sms/2/text/advanced', $postdata);
 
-                // Get the HTTP response code
-                $info = $curl->get_info();
-                $responseobject->errormessage = '';
-                $responseobject->errorobject = new stdClass();
+                // Just for testing.
+                $responseobject->success = true;
 
-                if ($info['http_code'] >= 200 && $info['http_code'] < 300) {
-                    // The request was successful
-                    $responseobject->success = true;
-                } else {
-                    // The request failed
-                    $responseobject->errorobject->httpcode = $info['http_code'];
-                    $responseobject->errorobject->curlcode = $curl->get_errno();
-                    $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
-                    $responseobject->success = false;
-                }
+                // Uncomment the following when you're ready to test for real.
+
+                //     // Make the request
+                //     $responseobject->response = $curl->post('https://' . $infobipapibaseurl . '/sms/2/text/advanced', $postdata);
+
+                //     // Get the HTTP response code
+                //     $info = $curl->get_info();
+                //     $responseobject->errormessage = '';
+                //     $responseobject->errorobject = new stdClass();
+
+                //     if ($info['http_code'] >= 200 && $info['http_code'] < 300) {
+                //         // The request was successful
+                //         $responseobject->success = true;
+                //     } else {
+                //         // The request failed
+                //         $responseobject->errorobject->httpcode = $info['http_code'];
+                //         $responseobject->errorobject->curlcode = $curl->get_errno();
+                //         $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
+                //         $responseobject->success = false;
+                //     }
             } catch (Exception $e) {
                 // Handle the exception
                 $responseobject->errormessage = $e->getMessage();
@@ -273,4 +373,30 @@ function tool_phoneverification_send_secure_otp($provider, $tonumber, $message) 
     }
     // return '$response';
     return $responseobject;
+}
+
+/**
+ * Sends an SMS message to a phone number via POST and HTTPS.
+ *
+ * @param string $otp The OTP to verify.
+ * @return object
+ */
+function tool_phoneverification_verify_otp($otp) {
+    global $DB, $USER;
+
+    // Retrieve the OTP record from the database
+    $record = $DB->get_record('tool_phoneverification_otp', array('userid' => $USER->id));
+
+    // Check if the OTP has expired
+    if (time() > $record->expires) {
+        throw new moodle_exception('OTP has expired');
+    }
+
+    // Verify the OTP
+    if (!password_verify($otp, $record->otp)) {
+        throw new moodle_exception('Invalid OTP');
+    }
+
+    // OTP is valid and has not expired
+    return true;
 }

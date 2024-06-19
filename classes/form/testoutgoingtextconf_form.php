@@ -128,10 +128,10 @@ class testoutgoingtextconf_form extends \moodleform {
         // var_dump($phoneoptions);
 
 
-        // Additional subject text.
-        $textoptions = ['maxlength' => '160'];
-        $mform->addElement('textarea', 'message', get_string('subjectadditional', 'tool_phoneverification'), $textoptions);
-        $mform->setType('message', PARAM_TEXT);
+        // // Additional subject text.
+        // $textoptions = ['maxlength' => '6'];
+        // $mform->addElement('text', 'otp', get_string('subjectadditional', 'tool_phoneverification'), $textoptions);
+        // $mform->setType('otp', PARAM_TEXT);
 
         $buttonarray = array();
         $buttonarray[] = $mform->createElement('submit', 'send', get_string('sendtest', 'tool_phoneverification'));

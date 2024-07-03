@@ -44,6 +44,8 @@ class testoutgoingtextconf_form extends \moodleform {
     public function definition() {
         $mform = $this->_form;
 
+        // global $DB;
+
         // Recipient.
         global $USER;
         $userid = $USER->id;
@@ -53,10 +55,15 @@ class testoutgoingtextconf_form extends \moodleform {
         $providerconfiglink = \html_writer::link($providerconfigurl, get_string('phoneproviderconfiguration', 'tool_phoneverification'));
 
         // Phone number.
-        $phone1 = tool_phoneverification_validate_phone_number($USER->phone1);
-        $phone2 = tool_phoneverification_validate_phone_number($USER->phone2);
-        $phone1formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone1);
-        $phone2formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone2);;
+        $phone1 = tool_phoneverification_format_phone_number($USER->phone1);
+        $phone2 = tool_phoneverification_format_phone_number($USER->phone2);
+        if ($phone1) {
+            $phone1formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone1);
+        }
+
+        if ($phone1) {
+            $phone2formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone2);
+        }
         if ($phone1formatted === $phone2formatted) {
             $phoneoptions = [$phone1 => $phone1formatted];
         } else {
@@ -112,6 +119,14 @@ class testoutgoingtextconf_form extends \moodleform {
             //     echo '<br>';
             //     var_dump("\$phoneoptions: ");
             //     var_dump($phoneoptions);
+            // }
+            // if ($DB->get_record('tool_phoneverification', ['userid' => $USER->id, ])) {
+            // $mform->addElement(
+            //     'static',
+            //     'verificationstatus',
+            //     get_string('verificationstatus', 'tool_phoneverification'),
+            //     new \lang_string('phonealreadyverified', 'tool_phoneverification')
+            // );
             // }
             $mform->addElement('select', 'tonumber', get_string('selectphonetoverify', 'tool_phoneverification'), $phoneoptions);
             $mform->setType('tonumber', PARAM_TEXT);

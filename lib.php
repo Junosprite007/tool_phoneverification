@@ -45,7 +45,7 @@ require_once($CFG->libdir . '/filelib.php');
  * @param string $country The country code to use.
  * @return boolean
  */
-function tool_phoneverification_validate_phone_number($phonenumber, $country = 'US') {
+function tool_phoneverification_format_phone_number($phonenumber, $country = 'US') {
     // Remove commonly used characters from the phone number that are not numbers: ().-+ and the white space char.
     $parsedphonenumber = preg_replace("/[\(\)\-\s+\.]/", "", $phonenumber);
 
@@ -94,15 +94,15 @@ function tool_phoneverification_providers_to_show($allphoneconfigs) {
 
     $providers = [];
 
-    if ($allphoneconfigs->awssnsaccesskey && $allphoneconfigs->awssnssecretkey && $allphoneconfigs->awssnsregion) {
-        $providers['awssns'] = get_string('awssns', 'tool_phoneverification');
-    }
+    // if ($allphoneconfigs->awssnsaccesskey && $allphoneconfigs->awssnssecretkey && $allphoneconfigs->awssnsregion) {
+    //     $providers['awssns'] = get_string('awssns', 'tool_phoneverification');
+    // }
     if ($allphoneconfigs->infobipapikey && $allphoneconfigs->infobipapibaseurl) {
         $providers['infobip'] = get_string('infobip', 'tool_phoneverification');
     }
-    if ($allphoneconfigs->twilioaccountsid && $allphoneconfigs->twilioauthtoken && $allphoneconfigs->twilionumber) {
-        $providers['twilio'] = get_string('twilio', 'tool_phoneverification');
-    }
+    // if ($allphoneconfigs->twilioaccountsid && $allphoneconfigs->twilioauthtoken && $allphoneconfigs->twilionumber) {
+    //     $providers['twilio'] = get_string('twilio', 'tool_phoneverification');
+    // }
 
     // $providers = [
     //     'awssns' => get_string('awssns', 'tool_phoneverification'),
@@ -280,39 +280,101 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
  * Sends an SMS message to a phone number via POST and HTTPS.
  *
  * @param string $provider The provider to use for sending the SMS message.
- * @param string $tonumber The phone number to send the SMS message to.
- * @param string $message The message to send in the SMS message.
+ * @param string $tophonenumber The phone number to send the SMS message to.
+ * @param int $ttl Time to live (TTL) in seconds until the OTP expires.
  * @return object
  */
-function tool_phoneverification_send_secure_otp($provider, $tonumber) {
-    global $CFG, $SITE, $DB, $USER, $SESSION;
+function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl = 600) {
+    global $USER, $SITE, $DB, $SESSION;
+
+    // DANGEROUS. For testing only.
+    // $DB->delete_records('tool_phoneverification_otp', ['userid' => $USER->id]);
+    // unset($SESSION->otps);
+    // die();
 
     $responseobject = new stdClass();
-    $otp = mt_rand(100000, 999999);
-    $message = get_string('phoneverificationcodeforflip', 'tool_phoneverification', $otp);
 
-    // Store OTP in session
-    $SESSION->otp = $otp;
+    try {
 
-    // Store hashed OTP in database with expiration time
-    $record = new stdClass();
-    $record->userid = $USER->id;
-    $record->otp = password_hash($otp, PASSWORD_DEFAULT);  // Hash the OTP
-    $record->timecreated = time();
-    $record->expires = time() + 120;  // OTP expires after 5 minutes
+        $record = new stdClass();
+        // Initialize $SESSION->otps.
+        if (!isset($SESSION->otps)) {
+            $SESSION->otps = new stdClass();
+        }
 
-    $DB->insert_record('tool_phoneverification_otp', $record);
+        $otp = mt_rand(100000, 999999);
+        // Test OTP
+        $testotp = 345844;
+        $message = get_string('phoneverificationcodeforflip', 'tool_phoneverification', $otp);
+        $phone1 = tool_phoneverification_format_phone_number($USER->phone1);
+        $phone2 = tool_phoneverification_format_phone_number($USER->phone2);
+        if ($tophonenumber == $phone1) {
+            $record->tophonename = 'phone1';
+        } elseif ($tophonenumber == $phone2) {
+            $record->tophonename = 'phone2';
+        } else {
+            throw new moodle_exception(get_string('phonefieldsdonotexist', 'tool_phoneverification'));
+        }
 
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-    echo $otp;
-    echo '<br>';
-    echo '<br>';
+        $sessionotpcount = 0;
+        $dbotpcount = 0;
+        $sessionasarray = get_object_vars($SESSION->otps);
+        $sqlconditions = ['userid' => $USER->id];
+        $otprecords = $DB->get_records('tool_phoneverification_otp', $sqlconditions);
+        $recordexists = false; // Whether or not this DB record exists.
 
-    switch ($provider) {
-        case 'infobip':
-            try {
+        if (!empty($sessionasarray)) {
+            // Prune bad $SESSION->otps records.
+            foreach ($SESSION->otps as $key => $entry) {
+                $sessionotpcount++;
+                $expired = $entry->expires <= time();
+                $verified = $entry->phoneisverified;
+                if ($expired && !$verified) {
+                    // Removing old session info.
+                    unset($SESSION->otps->$key);
+                    $sessionotpcount--;
+                }
+            }
+        }
+
+        // Prune bad $DB records.
+        if (!empty($otprecords)) {
+            foreach ($otprecords as $key => $entry) {
+                $dbotpcount++;
+                $expired = $entry->expires <= time();
+                $verified = $entry->phoneisverified;
+                if ($expired && !$verified) {
+                    $DB->delete_records('tool_phoneverification_otp', ['id' => $entry->id]);
+                    $dbotpcount--;
+                } else {
+                    // Override the session to match what's in the DB.
+                    $SESSION->otps->{$entry->tophonename} = $entry;
+                }
+            }
+        }
+
+        $recordexists = isset($SESSION->otps->{$record->tophonename});
+
+        // At this point, we are guaranteed that there are as many records in the DB
+        // as there are in $SESSION->otps, and they hold the same info, though formatted differently.
+        if (!$recordexists && $dbotpcount < 2) {
+
+            // Create new record.
+            $record->userid = $USER->id;
+            $record->otp = password_hash($otp, PASSWORD_DEFAULT);  // Hash the OTP.
+            $record->tophonenumber = $tophonenumber;
+            $record->phoneisverified = 0;
+            $record->timecreated = time();
+            $record->timeverified = null;
+            $record->expires = $record->timecreated + $ttl;  // OTP expires after 10 minutes.
+
+            $SESSION->otps->{$record->tophonename} = $record;
+            $DB->insert_record('tool_phoneverification_otp', $record);
+        }
+
+        switch ($provider) {
+            case 'infobip':
+                // try {
                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
                 $curl = new curl();
@@ -325,8 +387,7 @@ function tool_phoneverification_send_secure_otp($provider, $tonumber) {
                 ];
 
                 $curl->setHeader($headers);
-                $postdata = '{"messages":[{"destinations":[{"to":"' . $tonumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
-
+                $postdata = '{"messages":[{"destinations":[{"to":"' . $tophonenumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
 
                 // Just for testing.
                 $responseobject->success = true;
@@ -351,27 +412,38 @@ function tool_phoneverification_send_secure_otp($provider, $tonumber) {
                 //         $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
                 //         $responseobject->success = false;
                 //     }
-            } catch (Exception $e) {
-                // Handle the exception
-                $responseobject->errormessage = $e->getMessage();
-            }
-            break;
-        case 'twilio':
-            // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
-            // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
-            // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
+                // } catch (Exception $e) {
+                //     // Handle the exception
+                //     $responseobject->errormessage = $e->getMessage();
+                // }
+                break;
+            case 'twilio':
+                // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
+                // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
+                // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
 
-            break;
-        case 'awssns':
-            // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
-            // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
-            // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
+                break;
+            case 'awssns':
+                // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
+                // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
+                // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
 
-            break;
-        default:
-            break;
+                break;
+            default:
+                break;
+        }
+
+        // echo "Here's what the test OTP is: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$testotp";
+        // echo '<br>';
+        // echo "Here's what the OTP actually is: $otp";
+        // echo '<br>';
+
+        // tool_phoneverification_verify_otp($otp);
+    } catch (moodle_exception $e) {
+        // Catch the exception and add it to the array
+        $responseobject->success = false;
+        $responseobject->errormessage = $e->getMessage();
     }
-    // return '$response';
     return $responseobject;
 }
 
@@ -382,21 +454,134 @@ function tool_phoneverification_send_secure_otp($provider, $tonumber) {
  * @return object
  */
 function tool_phoneverification_verify_otp($otp) {
-    global $DB, $USER;
+    global $DB, $USER, $SESSION;
 
-    // Retrieve the OTP record from the database
-    $record = $DB->get_record('tool_phoneverification_otp', array('userid' => $USER->id));
+    $sqlconditions = [
+        'userid' => $USER->id,
+    ];
+    $records = (object) [$SESSION->otps ?? new stdClass()];
+    $phone1 = tool_phoneverification_format_phone_number($USER->phone1);
+    $phone2 = tool_phoneverification_format_phone_number($USER->phone2);
+    $sessionotpcount = 0;
+    $dbotpcount = 0;
+    $currenttime = time();
+    $sessionasarray = get_object_vars($SESSION->otps);
 
-    // Check if the OTP has expired
-    if (time() > $record->expires) {
-        throw new moodle_exception('OTP has expired');
+    try {
+        // We need to account for both phone getting verified at once.
+        // Check for valid $SESSION-otps first and remove old or invalid records.
+
+        // if (empty($sessionasarray)) {
+        //     // Load the OTP records from the database into the $SESSION->otps object.
+        // }
+
+        if (!empty($sessionasarray)) {
+            // This means there are 1 or 2 records in $SESSION->otps.
+            foreach ($SESSION->otps as $key => $record) {
+                $expired = $record->expires <= $currenttime;
+                $verified = $record->phoneisverified;
+                $matches = password_verify($otp, $record->otp);
+                // echo '<pre>';
+                // var_dump('$matches: ', $matches);
+                // echo '</pre>';
+
+
+                if (!$expired && !$verified && $matches) {
+                    $SESSION->otps->{$key}->phoneisverified = 1;
+                    // Verify the OTP.
+                    // echo '<pre>';
+                    // var_dump('$record->phoneisverified: ', $record->phoneisverified);
+                    // echo '</pre>';
+                    // echo '<pre>';
+                    // var_dump('$record: ', $record);
+                    // echo '</pre>';
+                    $record->phoneisverified = 1;
+                    // $DB->update_record('tool_phoneverification_otp', $record->phoneisverified);
+                    $DB->update_record('tool_phoneverification_otp', $record);
+                    // echo '<pre>';
+                    // var_dump('$record->phoneisverified: ', $record->phoneisverified);
+                    // echo '</pre>';
+                    // echo '<pre>';
+                    // var_dump('$record: ', $record);
+                    // echo '</pre>';
+                    // unset($record->expires);
+                }
+            }
+        }
+
+        // die();
+        // User could have an OTP for phone 1 OR phone 2 in $SESSION
+        // Let's guarantee no exceptions are thrown for this first if statement.
+        // if (isset($records->phone1)) {
+        //     if ($record->phone1->phoneisverified == 1) {
+        //         throw new moodle_exception('This phone number has already been verified.');
+        //     }
+        //     // Passed the already verified check.
+
+        //     if (time() > $record->phone1->expires) {
+        //         throw new moodle_exception('OTP has expired. Please send a new OTP.');
+        //     }
+        //     // Passed the expiration check.
+
+        //     if (password_verify($otp, $record->phone1->otp)) {
+        //         return true;
+        //     } else {
+        //         echo "Invalid OTP";
+        //         // throw new moodle_exception('Invalid OTP');
+        //     }
+        // } elseif (isset($record->phone2)) {
+        //     if (time() > $record->phone2->expires) {
+        //         throw new moodle_exception('OTP has expired');
+        //     }
+        //     if (password_verify($otp, $record->phone2->otp)) {
+        //         $codematches = true;
+        //     } else {
+        //         throw new moodle_exception('Invalid OTP');
+        //     }
+        // } else {
+        //     if ($DB->get_records('tool_phoneverification_otp', $sqlconditions)) {
+        //         // Retrieve the OTP record from the database
+        //         $records = $DB->get_records('tool_phoneverification_otp', $sqlconditions);
+        //         // $record = new stdClass();
+        //     } else {
+        //         throw new moodle_exception('Looks like there no code for this phone. Please verify your phone number first.');
+        //     }
+        // }
+
+
+
+
+
+        // foreach ($records as $record) {
+        //     if (password_verify($otp, $record->otp)) {
+        //         // OTP is valid
+
+        //         // Check if the OTP has expired
+        //         if (time() > $record->expires) {
+        //             throw new moodle_exception('OTP has expired');
+        //         }
+
+        //         // Verify the OTP
+        //         if (!password_verify($otp, $record->otp)) {
+        //             echo "Invalid OTP";
+        //             // throw new moodle_exception('Invalid OTP');
+        //         }
+
+        //         break;
+        //     }
+        // }
+    } catch (moodle_exception $e) {
+        // Step 2: Catch the exception and add it to the array
+        $exceptions[] = $e;
     }
-
-    // Verify the OTP
-    if (!password_verify($otp, $record->otp)) {
-        throw new moodle_exception('Invalid OTP');
+    if (!empty($exceptions)) {
+        foreach ($exceptions as $exception) {
+            // Display or handle each exception
+            // For example, you might just want to print the exception messages:
+            echo $exception->getMessage() . "<br>";
+        }
     }
 
     // OTP is valid and has not expired
-    return true;
+    return false;
 }

@@ -31,11 +31,12 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../lib.php');
 
 /**
- * Test mail form
+ * Form for testing outgoing texting configuration.
  *
- * @package    core
- * @copyright 2019 Victor Deniz <victor@moodle.com>
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     tool_phoneverification
+ * @copyright   2024 onwards Joshua Kirby <josh@funlearningcompany.com>
+ * @author      Joshua Kirby
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class testoutgoingtextconf_form extends \moodleform {
     /**
@@ -43,6 +44,8 @@ class testoutgoingtextconf_form extends \moodleform {
      */
     public function definition() {
         $mform = $this->_form;
+        // $returnurl = new \moodle_url('/admin/testoutgoingtextconf.php');
+        // $verifyotp_form = new \tool_phoneverification\form\verifyotp_form(null, ['returnurl' => $returnurl]);
 
         // global $DB;
 

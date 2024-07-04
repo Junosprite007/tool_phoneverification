@@ -33,6 +33,8 @@ use Infobip\Model\SmsTextualMessage;
 use Infobip\Model\SmsAdvancedTextualRequest;
 use Twilio\Rest\Client;
 
+use function DI\get;
+
 require_once(__DIR__ . "/vendor/autoload.php");
 require_once($CFG->libdir . '/filelib.php');
 // require_once($CFG->libdir . '/http.php');
@@ -133,15 +135,12 @@ function tool_phoneverification_providers_to_show($allphoneconfigs) {
  * @return object
  */
 function tool_phoneverification_send_sms($provider, $tonumber, $message) {
-    global $CFG;
     global $SITE;
 
     $responseobject = new stdClass();
-    $otp = rand(100000, 999999);
-
-    switch ($provider) {
-        case 'infobip':
-            try {
+    try {
+        switch ($provider) {
+            case 'infobip':
                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
                 $curl = new curl();
@@ -173,26 +172,27 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
                     $responseobject->errorobject->curlcode = $curl->get_errno();
                     $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
                     $responseobject->success = false;
+                    throw new moodle_exception('httprequestfailed', 'tool_phoneverification', '', null, $responseobject->errormessage);
                 }
-            } catch (Exception $e) {
-                // Handle the exception
-                $responseobject->errormessage = $e->getMessage();
-            }
-            break;
-        case 'twilio':
-            // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
-            // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
-            // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
+                break;
+            case 'twilio':
+                // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
+                // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
+                // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
 
-            break;
-        case 'awssns':
-            // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
-            // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
-            // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
+                break;
+            case 'awssns':
+                // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
+                // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
+                // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
 
-            break;
-        default:
-            break;
+                break;
+            default:
+                break;
+        }
+    } catch (Exception $e) {
+        // Handle the exception
+        $responseobject->errormessage = $e->getMessage();
     }
     // return '$response';
     return $responseobject;
@@ -285,7 +285,7 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
  * @return object
  */
 function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl = 600) {
-    global $USER, $SITE, $DB, $SESSION;
+    global $USER, $DB, $SESSION;
 
     // DANGEROUS. For testing only.
     // $DB->delete_records('tool_phoneverification_otp', ['userid' => $USER->id]);
@@ -293,6 +293,7 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
     // die();
 
     $responseobject = new stdClass();
+    $verifyurl = new moodle_url('/admin/verifyotp.php');
 
     try {
 
@@ -313,7 +314,7 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
         } elseif ($tophonenumber == $phone2) {
             $record->tophonename = 'phone2';
         } else {
-            throw new moodle_exception(get_string('phonefieldsdonotexist', 'tool_phoneverification'));
+            throw new moodle_exception('phonefieldsdonotexist', 'tool_phoneverification');
         }
 
         $sessionotpcount = 0;
@@ -370,67 +371,11 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
 
             $SESSION->otps->{$record->tophonename} = $record;
             $DB->insert_record('tool_phoneverification_otp', $record);
-        }
-
-        switch ($provider) {
-            case 'infobip':
-                // try {
-                $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
-                $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
-                $curl = new curl();
-
-                // Set headers
-                $headers = [
-                    'Authorization: App ' . $infobipapikey,
-                    'Content-Type: application/json',
-                    'Accept: application/json'
-                ];
-
-                $curl->setHeader($headers);
-                $postdata = '{"messages":[{"destinations":[{"to":"' . $tophonenumber . '"}],"from":"' . $SITE->shortname . '","text":"' . $message . '"}]}';
-
-                // Just for testing.
-                $responseobject->success = true;
-
-                // Uncomment the following when you're ready to test for real.
-
-                //     // Make the request
-                //     $responseobject->response = $curl->post('https://' . $infobipapibaseurl . '/sms/2/text/advanced', $postdata);
-
-                //     // Get the HTTP response code
-                //     $info = $curl->get_info();
-                //     $responseobject->errormessage = '';
-                //     $responseobject->errorobject = new stdClass();
-
-                //     if ($info['http_code'] >= 200 && $info['http_code'] < 300) {
-                //         // The request was successful
-                //         $responseobject->success = true;
-                //     } else {
-                //         // The request failed
-                //         $responseobject->errorobject->httpcode = $info['http_code'];
-                //         $responseobject->errorobject->curlcode = $curl->get_errno();
-                //         $responseobject->errormessage = get_string('httprequestfailedwithcode', 'tool_phoneverification', $responseobject->errorobject);
-                //         $responseobject->success = false;
-                //     }
-                // } catch (Exception $e) {
-                //     // Handle the exception
-                //     $responseobject->errormessage = $e->getMessage();
-                // }
-                break;
-            case 'twilio':
-                // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
-                // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
-                // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
-
-                break;
-            case 'awssns':
-                // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
-                // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
-                // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
-
-                break;
-            default:
-                break;
+            $message = get_string('phoneverificationcodeforflip', 'tool_phoneverification', $otp);
+            $responseobject = tool_phoneverification_send_sms($provider, $tophonenumber, $message);
+        } else {
+            throw new moodle_exception('otpforthisnumberalreadyexists', 'tool_phoneverification');
+            throw new moodle_exception('wait10minutes', 'tool_phoneverification');
         }
 
         // echo "Here's what the test OTP is: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$testotp";

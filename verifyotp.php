@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Test outgoing texting configuration.
+ * Verify OTP code.
  *
  * @package     tool_phoneverification
  * @copyright   2024 onwards Joshua Kirby <josh@funlearningcompany.com>
@@ -23,22 +23,19 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use core_reportbuilder\external\columns\sort\get;
-
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
 global $SITE, $USER;
 
 // This is an admin page.
-admin_externalpage_setup('testoutgoingtextconf');
+admin_externalpage_setup('verifyotp');
 
-$headingtitle = get_string('testoutgoingtextconf', 'tool_phoneverification');
+$headingtitle = get_string('verifyotp', 'tool_phoneverification');
 $homeurl = new moodle_url('/admin/category.php', array('category' => 'phone'));
-$returnurl = new moodle_url('/admin/testoutgoingtextconf.php');
+$returnurl = new moodle_url('/admin/verifyotp.php');
+$form = new tool_phoneverification\form\verifyotp_form(null, ['returnurl' => $returnurl]);
 
-// This form is located at admin/tool/phoneverification/classes/form/testoutgoingtextconf_form.php.
-$form = new tool_phoneverification\form\testoutgoingtextconf_form(null, ['returnurl' => $returnurl]);
 if ($form->is_cancelled()) {
     redirect($homeurl);
 }
@@ -61,9 +58,6 @@ if ($data) {
         'shortname' => $SITE->shortname,
         'provider' => $data->provider
     ];
-
-    // No longer using the message field, since we're dealing with OTPs now.
-    // $textuser->message = $data->message ? $data->message : get_string('testoutgoingtextconf_message', 'tool_phoneverification', $textuser->notes);
 
     // $textuser->id = -99;
     $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber);

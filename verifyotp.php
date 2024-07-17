@@ -34,8 +34,9 @@ admin_externalpage_setup('verifyotp');
 $headingtitle = get_string('verifyotp', 'tool_phoneverification');
 $homeurl = new moodle_url('/admin/category.php', array('category' => 'phone'));
 $returnurl = new moodle_url('/admin/verifyotp.php');
-$form = new tool_phoneverification\form\verifyotp_form(null, ['returnurl' => $returnurl]);
 
+// This form is located at admin/tool/phoneverification/classes/form/verifyotp_form.php.
+$form = new tool_phoneverification\form\verifyotp_form(null, ['returnurl' => $returnurl]);
 if ($form->is_cancelled()) {
     redirect($homeurl);
 }
@@ -52,34 +53,35 @@ if (!empty($CFG->notextever)) {
 
 $data = $form->get_data();
 if ($data) {
-    $textuser = new stdClass();
-    $textuser->tonumber = $data->tonumber;
-    $textuser->notes = [
-        'shortname' => $SITE->shortname,
-        'provider' => $data->provider
-    ];
+    // $info = new stdClass();
+    // $info->otp = $data->otp;
+    $responseobject = tool_phoneverification_verify_otp($data->otp);
 
     // $textuser->id = -99;
-    $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber);
 
     // We're eventually going to need to handle Moodle debugging options. Check out 'testoutgoingmailconf.php' for an example.
 
     if ($responseobject->success) {
         $msgparams = new stdClass();
-        $msgparams->tonumber = $textuser->tonumber;
-        $msg = get_string('senttextsuccess', 'tool_phoneverification', $msgparams);
+
+        if (isset($responseobject->tophonenumber)) {
+            $msgparams->tophonenumber = tool_phoneverification_format_phone_number($responseobject->tophonenumber);
+        } else {
+            $msgparams->tophonenumber = '';
+        }
+        if (isset($responseobject->successmessage)) {
+            $msg = $responseobject->successmessage;
+        } else {
+            $msg = get_string('codeconfirmed', 'tool_phoneverification', $msgparams);
+        }
         $notificationtype = 'notifysuccess';
     } else {
         $notificationtype = 'notifyproblem';
-        $msg = get_string('senttextfailure', 'tool_phoneverification', $responseobject->errormessage);
+        $msg = get_string('otperror', 'tool_phoneverification', $responseobject->errormessage);
     }
 
     // // Show result.
     echo $OUTPUT->notification($msg, $notificationtype);
-
-    // if ($verifydata) {
-    //     var_dump($verifydata);
-    // }
 }
 
 $form->display();

@@ -58,14 +58,14 @@ class testoutgoingtextconf_form extends \moodleform {
         $providerconfiglink = \html_writer::link($providerconfigurl, get_string('phoneproviderconfiguration', 'tool_phoneverification'));
 
         // Phone number.
-        $phone1 = tool_phoneverification_format_phone_number($USER->phone1);
-        $phone2 = tool_phoneverification_format_phone_number($USER->phone2);
+        $phone1 = tool_phoneverification_parse_phone_number($USER->phone1);
+        $phone2 = tool_phoneverification_parse_phone_number($USER->phone2);
         if ($phone1) {
-            $phone1formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone1);
+            $phone1formatted = tool_phoneverification_format_phone_number($phone1);
         }
 
         if ($phone1) {
-            $phone2formatted = preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $phone2);
+            $phone2formatted = tool_phoneverification_format_phone_number($phone2);
         }
         if ($phone1formatted === $phone2formatted) {
             $phoneoptions = [$phone1 => $phone1formatted];

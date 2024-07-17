@@ -34,6 +34,13 @@ if ($hassiteconfig) {
         'moodle/site:config',
         true
     ));
+    $ADMIN->add('server', new admin_externalpage(
+        'verifyotp',
+        new lang_string('verifyotp', 'tool_phoneverification'),
+        new moodle_url('/admin/verifyotp.php'),
+        'moodle/site:config',
+        true
+    ));
 
     $ADMIN->add('server', new admin_category('phone', new lang_string('phone', 'tool_phoneverification')));
     $settingspage = new admin_settingpage('managetoolphoneverification', new lang_string('phoneproviderconfiguration', 'tool_phoneverification'));
@@ -149,9 +156,18 @@ if ($hassiteconfig) {
         $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
         $link = html_writer::link($url, get_string('testoutgoingtextconf', 'tool_phoneverification'));
         $settingspage->add(new admin_setting_heading(
-            'testoutgoingtextc',
+            'testoutgoingtextconf',
             new lang_string('testoutgoingtextconf', 'tool_phoneverification'),
             new lang_string('testoutgoingtextdetail', 'tool_phoneverification', $link)
+        ));
+
+        // Verify OTP.
+        $url = new moodle_url('/admin/tool/phoneverification/verifyotp.php');
+        $link = html_writer::link($url, get_string('verifyotp', 'tool_phoneverification'));
+        $settingspage->add(new admin_setting_heading(
+            'verifyotp',
+            new lang_string('verifyotp', 'tool_phoneverification'),
+            new lang_string('verifyotpdetail', 'tool_phoneverification', $link)
         ));
 
 

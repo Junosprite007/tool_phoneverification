@@ -18,7 +18,7 @@
                 <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
             </KEYS>
         </TABLE>
-        <TABLE NAME="tool_phoneverification_isphoneverified" COMMENT="Table for storing OTPs">
+        <!-- <TABLE NAME="tool_phoneverification_isphoneverified" COMMENT="Table for storing OTPs">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -27,6 +27,6 @@
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
             </KEYS>
-        </TABLE>
+        </TABLE> -->
     </TABLES>
 </XMLDB>

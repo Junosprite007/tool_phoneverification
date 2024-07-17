@@ -25,9 +25,12 @@
 
 namespace tool_phoneverification\form;
 
+use lang_string;
+use moodle_exception;
+
 defined('MOODLE_INTERNAL') || die();
 
-require_once("$CFG->libdir/formslib.php");
+require_once(__DIR__ . '/../../lib.php');
 
 class verifyotp_form extends \moodleform {
     //Add elements to form
@@ -50,25 +53,31 @@ class verifyotp_form extends \moodleform {
      * @throws \dml_exception|\coding_exception
      */
     public function validation($data, $files): array {
-        // global $USER;
-        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
         $errors = parent::validation($data, $files);
-        // echo '<br>';
-        // echo '<br>';
-        // $data['tonumber'] = $phoneoptions[$data['tonumber']];
-        // var_dump("Form validation \$data: ");
-        // var_dump($data['tonumber']);
 
-        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
+        if (isset($data['otp'])) {
+            $otp = $data['otp'];
+            echo '<pre>';
+            // var_dump('$errors: ', $errors['otp']);
+            echo '</pre>';
 
-        if (isset($data['tonumber']) && $data['tonumber']) {
-            // $userrecipient = \core_user::get_user_by_username($data['tonumber']);
-
-            // if (!$userrecipient && !tool_phoneverification_validate_phone_number($data['tonumber'])) {
-            //     $errors['tonumber'] = get_string('recipientphone_invalid', 'tool_phoneverification');
-            // }
+            // // Check if the OTP entered is formatted correctly.
+            $messages = array();
+            if (!is_number($otp)) {
+                // echo 'OTP is not a number';
+                array_push($messages, get_string('enternumbersonly', 'tool_phoneverification'));
+            }
+            if (strlen($otp) != 6) {
+                // echo 'OTP is not 6 digits';
+                array_push($messages, get_string('enterexactly6digits', 'tool_phoneverification'));
+            }
+            // echo '<pre>';
+            // var_dump(count($messages));
+            // echo '</pre>';
+            if (count($messages) > 0) {
+                $errors['otp'] = join("<br>", $messages);
+            }
         }
-
         return $errors;
     }
 }

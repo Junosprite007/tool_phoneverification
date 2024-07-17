@@ -1,7 +1,0 @@
-{
-    "require": {
-        "infobip/infobip-api-php-client": "^5.1",
-        "vlucas/phpdotenv": "^5.6",
-        "twilio/sdk": "^8.1"
-    }
-}

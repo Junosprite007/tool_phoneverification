@@ -53,12 +53,7 @@ if (!empty($CFG->notextever)) {
 
 $data = $form->get_data();
 if ($data) {
-    // $info = new stdClass();
-    // $info->otp = $data->otp;
     $responseobject = tool_phoneverification_verify_otp($data->otp);
-
-    // $textuser->id = -99;
-
     // We're eventually going to need to handle Moodle debugging options. Check out 'testoutgoingmailconf.php' for an example.
 
     if ($responseobject->success) {

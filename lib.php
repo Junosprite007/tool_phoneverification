@@ -26,18 +26,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// require_once(__DIR__ . "/vendor/autoload.php");
 require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->libdir . '/moodlelib.php');
-// require_once($CFG->libdir . '/http.php');
-// require_once('HTTP/Request2.php');
 
 /**
- * Validates a cell phone number to make sure it makes sense.
+ * Validates a mobile phone number to make sure it makes sense.
  *
- * @param string $phonenumber The cell phone number to validate.
+ * @param string $phonenumber The mobile phone number to validate.
  * @param string $country The country code to use.
- * @return boolean
+ * @return string
  */
 function tool_phoneverification_parse_phone_number($phonenumber, $country = 'US') {
     // Remove commonly used characters from the phone number that are not numbers: ().-+ and the white space char.
@@ -48,7 +45,6 @@ function tool_phoneverification_parse_phone_number($phonenumber, $country = 'US'
             throw new \Exception(get_string('invalidphonenumberformat', 'tool_phoneverification') . get_string('wecurrentlyonlyacceptusnumbers', 'tool_phoneverification'));
         }
     } catch (\Exception $e) {
-        // return $e;
         return $e->getMessage();
     }
 
@@ -57,16 +53,13 @@ function tool_phoneverification_parse_phone_number($phonenumber, $country = 'US'
             // Check if the number is not empty, if it only contains digits, and if it is a valid 10 or 11 digit United States phone number.
             try {
                 if ((strlen($parsedphonenumber) == 10) && $phonenumber[0] != 1) {
-                    // echo "10 digits.";
                     $parsedphonenumber = "+1" . $parsedphonenumber;
                 } elseif ((strlen($parsedphonenumber) == 11) && $phonenumber[0] == 1) {
-                    // echo "11 digits.";
                     $parsedphonenumber = "+" . $parsedphonenumber;
                 } else {
                     throw new \Exception(new lang_string('invalidphonenumber', 'tool_phoneverification') . new lang_string('wecurrentlyonlyacceptusnumbers', 'tool_phoneverification'));
                 }
             } catch (\Exception $e) {
-                // return $e;
                 return $e->getMessage();
             }
             break;
@@ -80,7 +73,7 @@ function tool_phoneverification_parse_phone_number($phonenumber, $country = 'US'
  * Validates a cell phone number to make sure it makes sense.
  *
  * @param string $prunedphonenumber The already parsed phone number. This must follow the exact form as follows: +12345678910
- * @return boolean
+ * @return string
  */
 function tool_phoneverification_format_phone_number($prunedphonenumber) {
     return preg_replace("/^\+(\d{1})(\d{3})(\d{3})(\d{4})$/", "+$1 ($2) $3-$4", $prunedphonenumber);
@@ -93,38 +86,12 @@ function tool_phoneverification_format_phone_number($prunedphonenumber) {
  * @return array
  */
 function tool_phoneverification_providers_to_show($allphoneconfigs) {
-    // foreach ($allphoneconfigs as $key => $value) {
-    // }
-
     $providers = [];
 
-    // if ($allphoneconfigs->awssnsaccesskey && $allphoneconfigs->awssnssecretkey && $allphoneconfigs->awssnsregion) {
-    //     $providers['awssns'] = get_string('awssns', 'tool_phoneverification');
-    // }
     if ($allphoneconfigs->infobipapikey && $allphoneconfigs->infobipapibaseurl) {
         $providers['infobip'] = get_string('infobip', 'tool_phoneverification');
     }
-    // if ($allphoneconfigs->twilioaccountsid && $allphoneconfigs->twilioauthtoken && $allphoneconfigs->twilionumber) {
-    //     $providers['twilio'] = get_string('twilio', 'tool_phoneverification');
-    // }
 
-    // $providers = [
-    //     'awssns' => get_string('awssns', 'tool_phoneverification'),
-    //     'infobip' => get_string('infobip', 'tool_phoneverification'),
-    //     'twilio' => get_string('twilio', 'tool_phoneverification')
-    // ];
-
-
-
-    // echo '<br>';
-    // echo '<br>';
-    // echo '<br>';
-    // var_dump("\$allphoneconfigs from lib: ");
-    // var_dump($allphoneconfigs->infobipapikey); // this works.
-    // echo '<br>';
-    // echo '<br>';
-    // var_dump('$providers: '); // this works.
-    // var_dump($providers); // this works.
     return $providers;
 }
 
@@ -143,12 +110,9 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
     try {
         switch ($provider) {
             case 'infobip':
-
-
                 // Just for testing:
                 // $responseobject->success = true;
                 // break;
-
 
                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
@@ -203,87 +167,8 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
         // Handle the exception
         $responseobject->errormessage = $e->getMessage();
     }
-    // return '$response';
     return $responseobject;
 }
-
-// // This is the old version of the function.
-// /**
-//  * Sends an SMS message to a phone number.
-//  *
-//  * @param string $provider The provider to use for sending the SMS message.
-//  * @param string $tonumber The phone number to send the SMS message to.
-//  * @param string $message The message to send in the SMS message.
-//  * @return object
-//  */
-// function tool_phoneverification_send_sms($provider, $tonumber, $message) {
-//     global $CFG;
-//     global $SITE;
-
-//     $responseobject = new stdClass();
-
-//     switch ($provider) {
-//         case 'infobip':
-//             try {
-//                 $infobipapikey = get_config('tool_phoneverification', 'infobipapikey');
-//                 $infobipapibaseurl = get_config('tool_phoneverification', 'infobipapibaseurl');
-//                 $configuration = new Configuration(host: $infobipapibaseurl, apiKey: $infobipapikey);
-//                 $api = new SmsApi(config: $configuration);
-//                 $destination = new SmsDestination(to: $tonumber);
-//                 $msg = new SmsTextualMessage(
-//                     destinations: [$destination],
-//                     text: $message,
-//                     from: $SITE->shortname
-//                 );
-
-//                 // $request = new SmsAdvancedTextualRequest(messages: [$msg]);
-//                 // $response = $api->sendSmsMessage($request);
-//                 // $responseobject->response = $response;
-//                 $responseobject->response = 'Confirmed!'; // This is just for testing OPT Code verifictaion.
-//             } catch (Exception $e) {
-//                 // Handle the exception
-//                 $response = 'Caught exception: ' . $e->getMessage() . "\n";
-//                 $responseobject->response = $response;
-//                 $responseobject->error = $e->getMessage();
-//             }
-
-//             // var_dump('$response->getRequestError(): ');
-//             // echo "<pre>";
-//             // var_dump($response->getRequestError());
-//             // echo "</pre>";
-//             // echo "<br />";
-//             // echo "<br />";
-//             // Straight from InfoBip's website.
-//             // try {
-//             //     // if ($response->getStatus() == 200) {
-//             //     //     echo $response->getBody();
-//             //     // } else {
-//             //     //     echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
-//             //     //         $response->getReasonPhrase();
-//             //     // }
-//             // } catch ($message $e) {
-//             //     echo 'Error: ' . $e->getMessage();
-//             // }
-
-//             break;
-//         case 'twilio':
-//             // $twilioaccountsid = get_config('tool_phoneverification', 'twilioaccountsid');
-//             // $twilioauthtoken = get_config('tool_phoneverification', 'twilioauthtoken');
-//             // $twilionumber = get_config('tool_phoneverification', 'twilionumber');
-
-//             break;
-//         case 'awssns':
-//             // $awssnsaccesskey = get_config('tool_phoneverification', 'awssnsaccesskey');
-//             // $awssnssecretkey = get_config('tool_phoneverification', 'awssnssecretkey');
-//             // $awssnsregion = get_config('tool_phoneverification', 'awssnsregion');
-
-//             break;
-//         default:
-//             break;
-//     }
-//     // return '$response';
-//     return $responseobject;
-// }
 
 /**
  * Sends an SMS message to a phone number via POST and HTTPS.
@@ -296,13 +181,8 @@ function tool_phoneverification_send_sms($provider, $tonumber, $message) {
 function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl = 600) {
     global $USER, $DB, $SESSION;
 
-    // DANGEROUS. For testing only.
-    // $DB->delete_records('tool_phoneverification_otp', ['userid' => $USER->id]);
-    // unset($SESSION->otps);
-    // die();
-
     $responseobject = new stdClass();
-    $verifyurl = new moodle_url('/admin/verifyotp.php');
+    $verifyurl = new moodle_url('/admin/tool/phoneverification/verifyotp.php');
 
     try {
 
@@ -332,7 +212,7 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
         $sessionasarray = get_object_vars($SESSION->otps);
         $sqlconditions = ['userid' => $USER->id];
         $otprecords = $DB->get_records('tool_phoneverification_otp', $sqlconditions);
-        $recordexists = false; // Whether or not this DB record exists.
+        $recordexists = false;
 
         if (!empty($sessionasarray)) {
             // Prune bad $SESSION->otps records.
@@ -394,15 +274,6 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
         } else {
             throw new moodle_exception('somethingwentwrong', 'tool_phoneverification');
         }
-
-        echo "Here's what the test OTP is: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$testotp";
-        echo '<br>';
-        echo "Here's what the OTP actually is: $otp";
-        echo '<pre>';
-        var_dump($SESSION->otps);
-        echo '</pre>';
-
-        // tool_phoneverification_verify_otp($otp);
     } catch (moodle_exception $e) {
         // Catch the exception and add it to the array
         $responseobject->success = false;
@@ -419,13 +290,6 @@ function tool_phoneverification_send_secure_otp($provider, $tophonenumber, $ttl 
  */
 function tool_phoneverification_verify_otp($otp) {
     global $DB, $USER, $SESSION;
-
-    // $hashedotp = password_hash($otp, PASSWORD_DEFAULT);
-
-
-    // echo '<pre>';
-    // var_dump($SESSION->otps);
-    // echo '</pre>';
 
     $responseobject = new stdClass();
 
@@ -467,31 +331,13 @@ function tool_phoneverification_verify_otp($otp) {
         $dbrecords = $DB->get_records('tool_phoneverification_otp', $sqlconditions);
 
         if (!empty($dbrecords)) {
-
-            // Use this for if you want the user to not be able to attempt to verify a phone number
-            // if all there numbers are already verified.
-            // $verifiedcount = 0;
-            // foreach ($dbrecords as $key => $record) {
-            //     if ($record->phoneisverified) {
-            //         $verifiedcount++;
-            //     }
-            // }
-            // if (sizeof($dbrecords) == $verifiedcount) {
-            //     $responseobject->success = true;
-            //     $responseobject->successmessage = get_string('allphonesalreadyverified', 'tool_phoneverification');
-            //     return $responseobject;
-            // }
-
             // This means there are 1 or 2 records in $DB.
             foreach ($dbrecords as $key => $record) {
                 $expired = $record->expires <= time();
                 $verified = $record->phoneisverified;
                 $matches = password_verify($otp, $record->otp);
                 $responseobject->tophonenumber = $record->tophonenumber;
-                // var_dump($record);
-                // die();
                 if ($verified && $matches) {
-                    // $responseobject->tophonenumber = $key;
                     $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
                     $link = html_writer::link($url, get_string('testoutgoingtextconf', 'tool_phoneverification'));
                     $responseobject->success = true;
@@ -506,16 +352,8 @@ function tool_phoneverification_verify_otp($otp) {
                     $responseobject->success = true;
                     return $responseobject;
                 }
-                // if ($expired) {
-                //     $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
-                //     $link = html_writer::link($url, get_string('testoutgoingtextconf', 'tool_phoneverification'));
-                //     throw new moodle_exception('otphasexpired', 'tool_phoneverification', '', $link);
-                //     $responseobject->success = false;
-                //     return $responseobject;
-                // }
             }
         }
-        // 207644
         if (($sessioncount == 1 || $dbcount == 1) && $verified == 1) {
             throw new moodle_exception('nophonestoverify', 'tool_phoneverification');
         } elseif ($sessioncount == 1 || $dbcount == 1) {
@@ -525,23 +363,13 @@ function tool_phoneverification_verify_otp($otp) {
         } else {
             $url = new moodle_url('/admin/tool/phoneverification/testoutgoingtextconf.php');
             $link = html_writer::link($url, get_string('testoutgoingtextconf', 'tool_phoneverification'));
-            // $errorMessage = 'An error occurred. Please visit the <a href="' . $link . '">help page</a> for more information.';
-            // $errormessage = get_string('novalidotpsfound', 'tool_phoneverification', $link);
             throw new moodle_exception('novalidotpsfound', 'tool_phoneverification', '', $link);
-            // throw new moodle_exception('testoutgoingtextconf_link', 'tool_phoneverification', $link);
         }
     } catch (moodle_exception $e) {
         // Step 2: Catch the exception and add it to the array
         $responseobject->success = false;
         $responseobject->errormessage = $e->getMessage();
     }
-    // if (!empty($exceptions)) {
-    //     foreach ($exceptions as $exception) {
-    //         // Display or handle each exception
-    //         // For example, you might just want to print the exception messages:
-    //         echo $exception->getMessage() . "<br>";
-    //     }
-    // }
 
     // OTP is valid and has not expired
     return $responseobject;

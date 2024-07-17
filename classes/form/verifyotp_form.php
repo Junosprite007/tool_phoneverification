@@ -25,15 +25,11 @@
 
 namespace tool_phoneverification\form;
 
-use lang_string;
-use moodle_exception;
-
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../lib.php');
 
 class verifyotp_form extends \moodleform {
-    //Add elements to form
     public function definition() {
         $mform = $this->_form; // Don't forget the underscore!
 
@@ -57,23 +53,15 @@ class verifyotp_form extends \moodleform {
 
         if (isset($data['otp'])) {
             $otp = $data['otp'];
-            echo '<pre>';
-            // var_dump('$errors: ', $errors['otp']);
-            echo '</pre>';
 
             // // Check if the OTP entered is formatted correctly.
             $messages = array();
             if (!is_number($otp)) {
-                // echo 'OTP is not a number';
                 array_push($messages, get_string('enternumbersonly', 'tool_phoneverification'));
             }
             if (strlen($otp) != 6) {
-                // echo 'OTP is not 6 digits';
                 array_push($messages, get_string('enterexactly6digits', 'tool_phoneverification'));
             }
-            // echo '<pre>';
-            // var_dump(count($messages));
-            // echo '</pre>';
             if (count($messages) > 0) {
                 $errors['otp'] = join("<br>", $messages);
             }

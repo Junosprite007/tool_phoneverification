@@ -27,7 +27,6 @@ namespace tool_phoneverification\form;
 
 defined('MOODLE_INTERNAL') || die();
 
-// require_once($CFG->libdir . '/formslib.php');
 require_once(__DIR__ . '/../../lib.php');
 
 /**
@@ -39,15 +38,8 @@ require_once(__DIR__ . '/../../lib.php');
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class testoutgoingtextconf_form extends \moodleform {
-    /**
-     * Add elements to form
-     */
     public function definition() {
         $mform = $this->_form;
-        // $returnurl = new \moodle_url('/admin/testoutgoingtextconf.php');
-        // $verifyotp_form = new \tool_phoneverification\form\verifyotp_form(null, ['returnurl' => $returnurl]);
-
-        // global $DB;
 
         // Recipient.
         global $USER;
@@ -72,7 +64,6 @@ class testoutgoingtextconf_form extends \moodleform {
         } else {
             $phoneoptions = [$phone1 => $phone1formatted, $phone2 => $phone2formatted];
         }
-        // $phoneoptions = [$phone1 => $phone1formatted, $phone2 => $phone2formatted];
         $phoneselected = '';
 
         // Set the selected phone number for setDefault later.
@@ -84,11 +75,6 @@ class testoutgoingtextconf_form extends \moodleform {
 
         // Provider dropdown.
         $providerstoshow = tool_phoneverification_providers_to_show(get_config('tool_phoneverification'));
-        // echo '<br>';
-        // echo '<br>';
-        // echo '<br>';
-        // var_dump("\$providerstoshow: ");
-        // var_dump($providerstoshow);
 
         if (!$providerstoshow) {
             // No providers configured.
@@ -115,41 +101,11 @@ class testoutgoingtextconf_form extends \moodleform {
             );
             $mform->addRule('nophonefound', get_string('required'), 'required');
         } else {
-            // if ($phone1 === $phone2) {
-            //     array_pop($phoneoptions);
-
-            //     echo '<br>';
-            //     echo '<br>';
-            //     var_dump("\$phoneoptions: ");
-            //     var_dump($phoneoptions);
-            // }
-            // if ($DB->get_record('tool_phoneverification', ['userid' => $USER->id, ])) {
-            // $mform->addElement(
-            //     'static',
-            //     'verificationstatus',
-            //     get_string('verificationstatus', 'tool_phoneverification'),
-            //     new \lang_string('phonealreadyverified', 'tool_phoneverification')
-            // );
-            // }
             $mform->addElement('select', 'tonumber', get_string('selectphonetoverify', 'tool_phoneverification'), $phoneoptions);
             $mform->setType('tonumber', PARAM_TEXT);
             $mform->setDefault('tonumber', $phoneselected);
             $mform->addRule('tonumber', get_string('required'), 'required');
         }
-
-        // echo '<br>';
-        // var_dump("\$phoneselected: ");
-        // var_dump($phoneselected);
-        // echo '<br>';
-        // echo '<br>';
-        // var_dump("\$phoneoptions: ");
-        // var_dump($phoneoptions);
-
-
-        // // Additional subject text.
-        // $textoptions = ['maxlength' => '6'];
-        // $mform->addElement('text', 'otp', get_string('subjectadditional', 'tool_phoneverification'), $textoptions);
-        // $mform->setType('otp', PARAM_TEXT);
 
         $buttonarray = array();
         $buttonarray[] = $mform->createElement('submit', 'send', get_string('sendtest', 'tool_phoneverification'));
@@ -157,12 +113,6 @@ class testoutgoingtextconf_form extends \moodleform {
 
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
-        // echo '<br>';
-        // echo '<br>';
-        // var_dump("\$buttonarray: ");
-        // var_dump($buttonarray);
-        // echo '<br>';
-        // echo '<br>';
     }
 
     /**
@@ -174,23 +124,9 @@ class testoutgoingtextconf_form extends \moodleform {
      * @throws \dml_exception|\coding_exception
      */
     public function validation($data, $files): array {
-        // global $USER;
-        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
         $errors = parent::validation($data, $files);
-        // echo '<br>';
-        // echo '<br>';
-        // $data['tonumber'] = $phoneoptions[$data['tonumber']];
-        // var_dump("Form validation \$data: ");
-        // var_dump($data['tonumber']);
-
-        // $phoneoptions = ['phone1' => $USER->phone1, 'phone2' => $USER->phone2];
 
         if (isset($data['tonumber']) && $data['tonumber']) {
-            // $userrecipient = \core_user::get_user_by_username($data['tonumber']);
-
-            // if (!$userrecipient && !tool_phoneverification_validate_phone_number($data['tonumber'])) {
-            //     $errors['tonumber'] = get_string('recipientphone_invalid', 'tool_phoneverification');
-            // }
         }
 
         return $errors;

@@ -23,8 +23,6 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use core_reportbuilder\external\columns\sort\get;
-
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
@@ -36,21 +34,14 @@ admin_externalpage_setup('testoutgoingtextconf');
 $headingtitle = get_string('testoutgoingtextconf', 'tool_phoneverification');
 $homeurl = new moodle_url('/admin/category.php', array('category' => 'phone'));
 $returnurl = new moodle_url('/admin/testoutgoingtextconf.php');
+$redirecturl = new moodle_url('/admin/tool/phoneverification/verifyotp.php');
+$link = html_writer::link($redirecturl, get_string('verifyotp', 'tool_phoneverification'));
+$msg = '';
 
 // This form is located at admin/tool/phoneverification/classes/form/testoutgoingtextconf_form.php.
 $form = new tool_phoneverification\form\testoutgoingtextconf_form(null, ['returnurl' => $returnurl]);
 if ($form->is_cancelled()) {
     redirect($homeurl);
-}
-
-// Display the page.
-echo $OUTPUT->header();
-echo $OUTPUT->heading($headingtitle);
-
-// Displaying notextever warning.
-if (!empty($CFG->notextever)) {
-    $msg = get_string('notexteverwarning', 'tool_phoneverification');
-    echo $OUTPUT->notification($msg, \core\output\notification::NOTIFY_ERROR);
 }
 
 $data = $form->get_data();
@@ -62,10 +53,6 @@ if ($data) {
         'provider' => $data->provider
     ];
 
-    // No longer using the message field, since we're dealing with OTPs now.
-    // $textuser->message = $data->message ? $data->message : get_string('testoutgoingtextconf_message', 'tool_phoneverification', $textuser->notes);
-
-    // $textuser->id = -99;
     $responseobject = tool_phoneverification_send_secure_otp($textuser->notes['provider'], $textuser->tonumber);
 
     // We're eventually going to need to handle Moodle debugging options. Check out 'testoutgoingmailconf.php' for an example.
@@ -73,20 +60,28 @@ if ($data) {
     if ($responseobject->success) {
         $msgparams = new stdClass();
         $msgparams->tonumber = $textuser->tonumber;
+        $msgparams->link = $link;
         $msg = get_string('senttextsuccess', 'tool_phoneverification', $msgparams);
         $notificationtype = 'notifysuccess';
+        // redirect($redirecturl);
     } else {
         $notificationtype = 'notifyproblem';
         $msg = get_string('senttextfailure', 'tool_phoneverification', $responseobject->errormessage);
     }
-
-    // // Show result.
-    echo $OUTPUT->notification($msg, $notificationtype);
-
-    // if ($verifydata) {
-    //     var_dump($verifydata);
-    // }
 }
 
+// Display the page.
+echo $OUTPUT->header();
+echo $OUTPUT->heading($headingtitle);
+
+if ($msg) {
+    // // Show result.
+    echo $OUTPUT->notification($msg, $notificationtype);
+}
+// Displaying notextever warning.
+if (!empty($CFG->notextever)) {
+    $msg = get_string('notexteverwarning', 'tool_phoneverification');
+    echo $OUTPUT->notification($msg, \core\output\notification::NOTIFY_ERROR);
+}
 $form->display();
 echo $OUTPUT->footer();
